@@ -459,7 +459,6 @@ class OpenAquaeroUI(QMainWindow):
             if pwm_val is not None: new_pwm_commands[ch.channel_id] = pwm_val
 
             if getattr(self, 'chk_osd', None) and self.chk_osd.isChecked():
-
                 ch_id = f"ch_{ch.channel_id}"
                 ch_conf = osd_conf.get(ch_id, {"enabled": True, "custom_name": ""})
                 if ch_conf.get("enabled", True):
@@ -467,9 +466,10 @@ class OpenAquaeroUI(QMainWindow):
                     t = temps.get(sensor_id) if sensor_id else 0.0
                     if t is None: t = 0.0
                     r = rpms.get(ch.channel_id, 0)
+                    v = volts.get(ch.channel_id, 0.0)  # <-- ESTRAE IL VOLTAGGIO
                     p = int((pwm_val / 255.0) * 100) if pwm_val is not None else 0
                     ch_name = ch_conf.get("custom_name") or ch.edit_name.text()
-                    osd_data.append({'name': ch_name, 'temp': t, 'rpm': r, 'pwm': p})
+                    osd_data.append({'name': ch_name, 'temp': t, 'rpm': r, 'volt': v, 'pwm': p})
 
         if self.is_controlling:
             self.hw_thread.pwm_commands = new_pwm_commands
@@ -676,6 +676,7 @@ class OpenAquaeroUI(QMainWindow):
         os.execl(sys.executable, sys.executable, *sys.argv)
 
     def force_quit(self):
+        self.is_quitting = True  # <-- Nuova flag inserita qui
         self.ipc_server.stop()
         self.hw_thread.stop()
         QApplication.quit()
@@ -693,7 +694,7 @@ class OpenAquaeroUI(QMainWindow):
             os.makedirs(self.autostart_dir, exist_ok=True)
             exec_cmd = "/usr/bin/openaquaero --minimized" if minimized else "/usr/bin/openaquaero"
             with open(self.desktop_file_path, "w") as f:
-                f.write(f"[Desktop Entry]\nType=Application\nExec={exec_cmd}\nHidden=false\nNoDisplay=false\nX-GNOME-Autostart-enabled=true\nName=OpenAquaero\nComment=Aquaero Thermal Control\nCategories=System;HardwareSettings;\n")
+                f.write(f"[Desktop Entry]\nType=Application\nExec={exec_cmd}\nHidden=false\nNoDisplay=false\nX-GNOME-Autostart-enabled=true\nName=OpenAquaero\nComment=Suite di controllo per Aquaero 6 LT\nCategories=System;HardwareSettings;\n")
             os.chmod(self.desktop_file_path, os.stat(self.desktop_file_path).st_mode | stat.S_IEXEC)
         elif os.path.exists(self.desktop_file_path):
             os.remove(self.desktop_file_path)
@@ -794,6 +795,10 @@ class OpenAquaeroUI(QMainWindow):
             else: self.hide()
 
     def closeEvent(self, event):
+        if getattr(self, 'is_quitting', False):
+            event.accept()
+            return
+
         event.ignore()
         self.hide()
         self.tray_icon.showMessage("OpenAquaero", T("tray_msg"), QSystemTrayIcon.Information, 2000)
