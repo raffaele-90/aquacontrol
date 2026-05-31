@@ -1,5 +1,5 @@
 #!/bin/bash
-# OpenAquaero - Installatore Universale Linux (v2.2.1)
+# OpenAquaero - Installatore Universale Linux (v3.0.0 Modular)
 
 if [ "$EUID" -ne 0 ]; then
   echo "ERRORE: Per installare OpenAquaero nel sistema, esegui lo script come root (es. sudo ./installer.sh)"
@@ -12,15 +12,13 @@ mkdir -p /usr/share/applications
 mkdir -p /usr/share/icons/hicolor/512x512/apps
 
 echo "=> Copia dei file sorgente Python in /usr/lib..."
-cp engine.py /usr/lib/openaquaero/
-cp openaquaero.py /usr/lib/openaquaero/
-cp osd_widget.py /usr/lib/openaquaero/
+cp *.py /usr/lib/openaquaero/
 chmod 644 /usr/lib/openaquaero/*.py
 
 echo "=> Creazione dell'eseguibile globale in /usr/bin..."
 cat << 'EOF' > /usr/bin/openaquaero
 #!/bin/bash
-exec python3 /usr/lib/openaquaero/openaquaero.py "$@"
+exec python3 /usr/lib/openaquaero/main.py "$@"
 EOF
 chmod 755 /usr/bin/openaquaero
 
@@ -47,7 +45,9 @@ fi
 
 echo "=> Configurazione delle regole udev per i futuri riavvi..."
 cat << 'EOF' > /etc/udev/rules.d/99-aquaero.rules
-SUBSYSTEM=="hwmon", ACTION=="add", ATTRS{name}=="aquaero", RUN+="/bin/sh -c 'chmod a+w /sys/class/hwmon/%k/pwm*'"
+SUBSYSTEM=="hwmon", ACTION=="add", ATTRS{name}=="aquaero", RUN+="/bin/sh -c 'sleep 2 && chmod a+w /sys/class/hwmon/%k/pwm*'"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0c70", ATTRS{idProduct}=="f001", MODE="0666"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0c70", ATTRS{idProduct}=="f001", MODE="0666"
 EOF
 chmod 644 /etc/udev/rules.d/99-aquaero.rules
 
@@ -64,6 +64,22 @@ done
 if [ "$AQUAERO_FOUND" -eq 0 ]; then
     echo "   ATTENZIONE: Nessun Aquaero rilevato attualmente nel sistema."
 fi
+
+echo "=> Configurazione regole Polkit per lo spegnimento di emergenza..."
+mkdir -p /etc/polkit-1/rules.d
+cat << 'EOF' > /etc/polkit-1/rules.d/99-openaquaero-shutdown.rules
+/* Consente agli utenti del gruppo wheel di forzare lo spegnimento ignorando gli inhibitor */
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.freedesktop.login1.power-off" ||
+        action.id == "org.freedesktop.login1.power-off-multiple-sessions" ||
+        action.id == "org.freedesktop.login1.power-off-ignore-inhibit") {
+        if (subject.isInGroup("wheel")) {
+            return polkit.Result.YES;
+        }
+    }
+});
+EOF
+chmod 644 /etc/polkit-1/rules.d/99-openaquaero-shutdown.rules
 
 echo "=> Aggiornamento della cache delle icone del Desktop Environment..."
 if command -v gtk-update-icon-cache &> /dev/null; then

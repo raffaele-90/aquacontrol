@@ -161,6 +161,12 @@ class AquaeroOSD(QWidget):
                 lbl_val.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
                 row_layout.addWidget(lbl_val)
 
+                # --- NUOVO: Spazio dedicato per il Voltaggio in OSD ---
+                lbl_volt = QLabel()
+                lbl_volt.setFixedWidth(int(55*s))
+                lbl_volt.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                row_layout.addWidget(lbl_volt)
+
                 lbl_rpm = QLabel()
                 lbl_rpm.setFixedWidth(int(75*s))
                 lbl_rpm.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
@@ -186,6 +192,7 @@ class AquaeroOSD(QWidget):
                     'badge': lbl_badge,
                     'name': lbl_name,
                     'val': lbl_val,
+                    'volt': lbl_volt, # <--- Aggiunto al dizionario UI
                     'rpm': lbl_rpm,
                     'prog': prog_bar,
                     'spacer': spacer
@@ -201,6 +208,7 @@ class AquaeroOSD(QWidget):
             rpm = item.get('rpm')
             pwm = item.get('pwm')
             temp = item.get('temp')
+            volt = item.get('volt') # <--- Estrae il voltaggio
 
             if "VOLT" in name_text: badge_txt = "VLT"
             elif rpm is not None: badge_txt = "FAN"
@@ -211,6 +219,7 @@ class AquaeroOSD(QWidget):
             ui['badge'].setText(badge_txt)
             ui['name'].setText(display_name)
 
+            # Temp
             if temp is not None:
                 unit = "V" if badge_txt == "VLT" else "°C"
                 ui['val'].setText(f"{temp:.1f} {unit}")
@@ -219,12 +228,21 @@ class AquaeroOSD(QWidget):
                 ui['val'].setText("--")
                 ui['val'].setStyleSheet(f"color: #45475a;")
 
+            # Volt
+            if volt is not None:
+                ui['volt'].setText(f"{volt:.1f} V")
+                ui['volt'].setStyleSheet(f"color: #f9e2af; font-family: monospace; font-weight: 800; font-size: {int(13*s)}px;")
+            else:
+                ui['volt'].setText("")
+
+            # RPM
             if rpm is not None:
                 ui['rpm'].setText(f"{rpm} RPM")
                 ui['rpm'].setStyleSheet(f"color: #94e2d5; font-family: monospace; font-weight: 800; font-size: {int(13*s)}px;")
             else:
                 ui['rpm'].setText("")
 
+            # PWM Load
             if pwm is not None:
                 ui['prog'].show()
                 ui['spacer'].hide()

@@ -15,8 +15,9 @@ echo "=> Rimozione del lanciatore e dell'icona..."
 rm -f /usr/share/applications/openaquaero.desktop
 rm -f /usr/share/icons/hicolor/512x512/apps/openaquaero.png
 
-echo "=> Rimozione delle regole udev..."
+echo "=> Rimozione delle regole di sistema (udev e polkit)..."
 rm -f /etc/udev/rules.d/99-aquaero.rules
+rm -f /etc/polkit-1/rules.d/99-openaquaero-shutdown.rules
 
 echo "=> Aggiornamento dei demoni di sistema e cache..."
 udevadm control --reload-rules

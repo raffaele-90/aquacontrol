@@ -1,5 +1,10 @@
+import subprocess
+import datetime
 import os
+import re
 import glob
+import time
+from collections import deque
 
 try:
     import pynvml
@@ -10,7 +15,8 @@ except ImportError:
 class AquaeroEngine:
     """
     Core hardware abstraction layer for OpenAquaero.
-    Handles device mapping, generic Linux hwmon scanning, and PWM curve calculations.
+    Handles device mapping, generic Linux hwmon scanning, PWM calculations,
+    Virtual Sensors (Delta T), PID logic, and Hardware Mapping (Min Power/Boost).
     """
     def __init__(self):
         self.path = self._find_aquaero_hwmon()
@@ -24,6 +30,22 @@ class AquaeroEngine:
         self.sys_sensors_paths = {}
 
         self.nvml_initialized = False
+
+        # Memoria di stato per il controllore PID {channel_id: {'integral': 0.0, 'prev_error': 0.0, 'last_time': 0.0}}
+        self.pid_states = {}
+
+        # Memoria per lo Start Boost {channel_id: boost_end_time}
+        self.boost_active_until = {}
+
+        # Stato precedente per capire quando applicare il boost (passaggio da 0 a >0)
+        self.last_logical_request = {}
+
+        # Buffer circolare per memorizzare gli ultimi 60 campionamenti (utile per Sparklines)
+        self.history = {}
+
+        # Configurazione dinamica dei sensori virtuali (es. Delta T)
+        self.virtual_sensors_config = {}
+
         self._init_system_sensors()
 
         if not self.path:
@@ -159,7 +181,8 @@ class AquaeroEngine:
         return None
 
     def _map_hardware(self):
-        """Maps specific Aquaero proprietary channels (PWM, Fan, Temp)."""
+        """Maps specific Aquaero proprietary channels (PWM, Fan, Volt, Temp)."""
+        self.volt_channels = {}
         for i in range(1, 5):
             pwm_path = os.path.join(self.path, f"pwm{i}")
             if os.path.exists(pwm_path):
@@ -168,6 +191,34 @@ class AquaeroEngine:
             fan_path = os.path.join(self.path, f"fan{i}_input")
             if os.path.exists(fan_path):
                 self.fan_channels[i] = fan_path
+
+        # --- INIZIO MODIFICA: Mappatura Dinamica Voltaggi (Regex + Fallback) ---
+        mapped_channels = set()
+
+        # 1. Tentativo dinamico con Regex sulle label
+        for label_file in glob.glob(os.path.join(self.path, "in*_label")):
+            try:
+                with open(label_file, 'r') as f:
+                    label_text = f.read().strip()
+                    # Cerca la parola "fan" seguita (anche con spazi) da un numero da 1 a 4
+                    match = re.search(r'fan\s*([1-4])', label_text, re.IGNORECASE)
+                    if match:
+                        ch_num = int(match.group(1))
+                        input_file = label_file.replace("_label", "_input")
+                        if os.path.exists(input_file):
+                            self.volt_channels[ch_num] = input_file
+                            mapped_channels.add(ch_num)
+            except Exception:
+                pass
+
+        # 2. Rete di Sicurezza (Fallback)
+        # Se le label falliscono o mancano, mappa usando l'ABI standard hwmon (in0=Ch1, in1=Ch2, ecc.)
+        for i in range(1, 5):
+            if i not in mapped_channels:
+                fallback_file = os.path.join(self.path, f"in{i-1}_input")
+                if os.path.exists(fallback_file):
+                    self.volt_channels[i] = fallback_file
+        # --- FINE MODIFICA ---
 
         for temp_file in glob.glob(os.path.join(self.path, "temp*_input")):
             sensor_id = os.path.basename(temp_file).split('_')[0]
@@ -180,6 +231,14 @@ class AquaeroEngine:
                         if read_label: label_name = read_label
                 except Exception: pass
             self.sensors[sensor_id] = {'path': temp_file, 'label': f"{label_name} ({sensor_id})"}
+
+    def get_fan_volt(self, channel):
+        if channel in getattr(self, 'volt_channels', {}):
+            try:
+                with open(self.volt_channels[channel], "r") as f:
+                    return int(f.read().strip()) / 1000.0
+            except Exception: return 0.0
+        return 0.0
 
     def get_available_sensors(self):
         sorted_sensors = sorted(self.sensors.items(), key=lambda item: int(item[0].replace('temp', '')))
@@ -200,36 +259,207 @@ class AquaeroEngine:
             except Exception: return 0
         return 0
 
+    # ---------------------------------------------------------
+    # INTEGRAZIONE DASHBOARD AVANZATA (Storico, Virtuali, UI)
+    # ---------------------------------------------------------
+
+    def set_virtual_sensor(self, virtual_id, hot_sensor_id, cold_sensor_id):
+        """Registra o aggiorna un sensore virtuale nel motore."""
+        self.virtual_sensors_config[virtual_id] = {
+            "hot": hot_sensor_id,
+            "cold": cold_sensor_id
+        }
+
+    def _update_history(self, sensor_id, value):
+        """Mantiene un buffer circolare degli ultimi 60 campionamenti per i grafici."""
+        if value is None:
+            return
+
+        if sensor_id not in self.history:
+            self.history[sensor_id] = deque(maxlen=60)
+        self.history[sensor_id].append(value)
+
+    def get_dashboard_telemetry(self):
+        sys_data = self.get_system_telemetry()
+
+        aqua_temps = {}
+        for s_id in self.sensors:
+            aqua_temps[s_id] = self.get_sensor_temp(s_id)
+
+        aqua_rpms = {}
+        aqua_volts = {}
+        for ch_id in range(1, 5):
+            aqua_rpms[ch_id] = self.get_fan_rpm(ch_id)
+            aqua_volts[ch_id] = self.get_fan_volt(ch_id)
+
+        all_temps = {**sys_data, **aqua_temps}
+
+        virtual_data = {}
+        for v_id, config in self.virtual_sensors_config.items():
+            hot_val = all_temps.get(config["hot"])
+            cold_val = all_temps.get(config["cold"])
+
+            delta = self.calculate_virtual_delta(hot_val, cold_val)
+            if delta is not None:
+                virtual_data[v_id] = delta
+                all_temps[v_id] = delta
+
+        for s_id, val in all_temps.items():
+            self._update_history(s_id, val)
+        for ch_id, rpm in aqua_rpms.items():
+            self._update_history(f"ch_rpm_{ch_id}", rpm)
+
+        pwm_loads = {}
+        for ch_id in range(1, 5):
+            raw_pwm = self.last_pwm_written.get(ch_id, 0)
+            pwm_loads[ch_id] = int((raw_pwm / 255.0) * 100)
+
+        return {
+            "system": sys_data,
+            "temps": aqua_temps,
+            "rpms": aqua_rpms,
+            "volts": aqua_volts,
+            "virtuals": virtual_data,
+            "pwm_loads": pwm_loads,
+            "history": {k: list(v) for k, v in self.history.items()}
+        }
+
+    # ---------------------------------------------------------
+    # MATEMATICA E LOGICA DI CONTROLLO TERMICO
+    # ---------------------------------------------------------
+
+    def calculate_virtual_delta(self, temp_hot, temp_cold):
+        """
+        Calcola il Delta T tra due sensori (es. Temperatura Acqua - Temperatura Ambiente).
+        Impedisce che il valore scenda sotto zero per evitare conflitti logici.
+        """
+        if temp_hot is None or temp_cold is None: return None
+        return max(0.0, temp_hot - temp_cold)
+
+    # NOTA: I parametri p_min e p_max qui rappresentano la logica visiva (es 0-100), non l'hardware
     def calculate_pwm_auto(self, temp, t_min, t_max, p_min, p_max, gamma=1.0):
-        """Calculates PWM target using a polynomial curve."""
-        if temp is None: return 0
-        if temp <= t_min: return int(p_min * 2.55)
-        if temp >= t_max: return int(p_max * 2.55)
-        if t_max == t_min: return int(p_max * 2.55)
+        """Calculates logical PWM target using a polynomial curve (returns 0-100%)."""
+        if temp is None: return 0.0
+        if temp <= t_min: return float(p_min)
+        if temp >= t_max: return float(p_max)
+        if t_max == t_min: return float(p_max)
 
         t_norm = (temp - t_min) / (t_max - t_min)
         curve_factor = pow(t_norm, gamma)
-        pwm_percent = p_min + (p_max - p_min) * curve_factor
-        return int(pwm_percent * 2.55)
+        return p_min + (p_max - p_min) * curve_factor
 
     def calculate_pwm_manual(self, temp, curve_points):
-        """Calculates PWM target via linear interpolation between custom nodes."""
-        if temp is None or not curve_points: return 0
+        """Calculates logical PWM target via linear interpolation (returns 0-100%)."""
+        if temp is None or not curve_points: return 0.0
 
         sorted_points = sorted(curve_points, key=lambda p: p[0])
 
-        if temp <= sorted_points[0][0]: return int(sorted_points[0][1] * 2.55)
-        if temp >= sorted_points[-1][0]: return int(sorted_points[-1][1] * 2.55)
+        if temp <= sorted_points[0][0]: return float(sorted_points[0][1])
+        if temp >= sorted_points[-1][0]: return float(sorted_points[-1][1])
 
         for i in range(len(sorted_points) - 1):
             t1, p1 = sorted_points[i]
             t2, p2 = sorted_points[i+1]
 
             if t1 <= temp <= t2:
-                if t1 == t2: pwm_percent = p2
-                else: pwm_percent = p1 + (p2 - p1) * ((temp - t1) / (t2 - t1))
-                return int(pwm_percent * 2.55)
-        return 0
+                if t1 == t2: return float(p2)
+                else: return p1 + (p2 - p1) * ((temp - t1) / (t2 - t1))
+        return 0.0
+
+
+    def calculate_pwm_pid(self, channel, current_temp, target_temp, pid_mode="Normal", custom_kp=0.0, custom_ki=0.0, custom_kd=0.0):
+        """Calculates logical PWM target using PID (returns 0-100%)."""
+        if current_temp is None: return 0.0
+
+        current_time = time.time()
+        state = self.pid_states.setdefault(channel, {'integral': 0.0, 'prev_error': 0.0, 'last_time': current_time})
+
+        dt = current_time - state['last_time']
+        if dt <= 0.0: dt = 1.0
+
+        error = current_temp - target_temp
+
+        presets = {
+            "Slow":   {"kp": 3.0, "ki": 0.05, "kd": 0.1},
+            "Normal": {"kp": 5.0, "ki": 0.08, "kd": 0.3},
+            "Fast":   {"kp": 8.0, "ki": 0.10, "kd": 0.5}
+        }
+
+        if pid_mode in presets:
+            kp = presets[pid_mode]["kp"]
+            ki = presets[pid_mode]["ki"]
+            kd = presets[pid_mode]["kd"]
+        else:
+            kp = custom_kp
+            ki = custom_ki
+            kd = custom_kd
+
+        # 1. Proporzionale
+        P = kp * error
+
+        # 2. Integrale con limitazione ANTI-WINDUP
+        state['integral'] += error * dt
+
+        if state['integral'] < 0.0:
+            state['integral'] = 0.0
+
+        max_i_contribution = 100.0
+        if ki > 0:
+            if state['integral'] * ki > max_i_contribution:
+                state['integral'] = max_i_contribution / ki
+
+        I = ki * state['integral']
+
+        # 3. Derivativo
+        D = kd * (error - state['prev_error']) / dt
+
+        state['prev_error'] = error
+        state['last_time'] = current_time
+
+        # Output logico puro (0-100%)
+        logical_percent = P + I + D
+
+        if logical_percent <= 0:
+            return 0.0
+
+        return max(0.0, min(100.0, logical_percent))
+
+    # ---------------------------------------------------------
+    # MAPPATURA HARDWARE (Min Power & Start Boost)
+    # ---------------------------------------------------------
+
+    def apply_hardware_limits(self, channel, logical_percent, min_power_percent, boost_enabled, boost_time=1.0):
+        """
+        Trasforma la richiesta logica (0-100%) in un comando fisico (0-255),
+        applicando la Potenza Minima e lo Spunto di Avvio dinamico.
+        """
+        current_time = time.time()
+        logical_percent = float(logical_percent)
+        min_power_percent = float(max(0, min(100, min_power_percent)))
+        boost_time = float(boost_time)
+
+        # Gestione del Boost: Si attiva se si passa da 0 a un valore > 0
+        last_req = self.last_logical_request.get(channel, 0.0)
+
+        if logical_percent > 0.0 and last_req <= 0.0 and boost_enabled:
+            # Imposta il boost dinamico in base alla scelta dell'utente
+            self.boost_active_until[channel] = current_time + boost_time
+
+        self.last_logical_request[channel] = logical_percent
+
+        # Calcolo dell'output Hardware
+        if logical_percent <= 0.0:
+            hardware_percent = 0.0
+        else:
+            if current_time < self.boost_active_until.get(channel, 0):
+                hardware_percent = 100.0
+            else:
+                hardware_percent = min_power_percent + ((100.0 - min_power_percent) * (logical_percent / 100.0))
+
+        hardware_percent = max(0.0, min(100.0, hardware_percent))
+        byte_val = int(hardware_percent * 2.55)
+
+        return byte_val, hardware_percent
 
     def set_fan_speed(self, channel, pwm_value):
         """Writes PWM target to sysfs. Implements delta checking to reduce USB bus usage."""
@@ -248,3 +478,91 @@ class AquaeroEngine:
                 print(f"Insufficient permissions on PWM{channel}.")
             except Exception:
                 pass
+
+    def trigger_emergency_shutdown(self, sensor_name, temperature, delay_seconds=0):
+        """Registra il log di emergenza e delega lo spegnimento forzato a systemd."""
+        log_dir = os.path.expanduser("~/.config/openaquaero")
+        os.makedirs(log_dir, exist_ok=True)
+        log_file = os.path.join(log_dir, "emergency_log.txt")
+
+        # Timestamp con precisione al secondo
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        log_message = f"[{timestamp}] SHUTDOWN DI EMERGENZA! Sensore: '{sensor_name}' | Temp: {temperature}°C\n"
+
+        try:
+            with open(log_file, "a") as f:
+                f.write(log_message)
+        except Exception:
+            # In emergenza non blocchiamo l'arresto se il log fallisce
+            pass
+
+        # FIX: Affidiamo la pianificazione dello spegnimento a systemd.
+        # Diventa indipendente ed eseguito anche se il processo Python dovesse venire chiuso o crashare.
+        if delay_seconds > 0:
+            subprocess.Popen(["systemd-run", f"--on-active={delay_seconds}", "systemctl", "poweroff", "--force"])
+        else:
+            subprocess.Popen(["systemctl", "--force", "--force", "poweroff"])
+
+    def set_channel_mode_hid(self, channel, mode):
+        """Cambia modalità (DC o PWM) tramite protocollo USB raw."""
+        try:
+            import hid
+        except ImportError:
+            print("ERRORE: python-hidapi non trovato. Switch PWM/DC disabilitato.")
+            return
+
+        VENDOR_ID = 0x0c70
+        PRODUCT_ID = 0xf001 # Aquaero 6
+
+        try:
+            # 1. Scansiona e trova l'interfaccia USB che accetta il Report 0x0B
+            target_path = None
+            for dev_info in hid.enumerate(VENDOR_ID, PRODUCT_ID):
+                try:
+                    tmp_dev = hid.device()
+                    tmp_dev.open_path(dev_info['path'])
+                    # Test silente per verificare i permessi
+                    tmp_dev.get_feature_report(0x0b, 1025)
+                    target_path = dev_info['path']
+                    tmp_dev.close()
+                    break
+                except Exception:
+                    pass
+
+            if not target_path:
+                print("[HIDAPI] Errore: Nessuna interfaccia USB accetta il comando di scrittura.")
+                return
+
+            # 2. Apertura sicura sull'interfaccia corretta
+            device = hid.device()
+            device.open_path(target_path)
+
+            REPORT_ID = 0x0b
+            # Scarica il blocco di configurazione reale (1025 bytes, il primo byte è il Report ID)
+            buf = device.get_feature_report(REPORT_ID, 1025)
+
+            # --- OFFSET ESATTI RICAVATI DAL REVERSE ENGINEERING ---
+            FAN_MODE_OFFSETS = {
+                1: 539, # Canale 1
+                2: 559, # Canale 2
+                3: 579, # Canale 3
+                4: 599  # Canale 4
+            }
+
+            if channel in FAN_MODE_OFFSETS:
+                target_index = FAN_MODE_OFFSETS[channel]
+
+                # Modifica del byte: 0x00 = Power Controlled (DC), 0x02 = PWM
+                if mode == "PWM":
+                    buf[target_index] = 0x02
+                else:
+                    buf[target_index] = 0x00
+
+                # Rispedisce il payload all'Aquaero (buf[0] contiene già il Report ID 0x0b)
+                device.send_feature_report(buf)
+                print(f"[HIDAPI] Switch completato con successo: Canale {channel} -> {mode} (Indice Memoria: {target_index}).")
+
+            device.close()
+
+        except Exception as e:
+            print(f"[HIDAPI] Errore di comunicazione USB: {e}")
