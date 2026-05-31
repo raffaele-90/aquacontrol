@@ -84,12 +84,6 @@ def get_dynamic_style(opacity_value):
         border: 1px solid rgba(255, 255, 255, 20); border-radius: 4px; padding: 5px; color: #ffffff;
     }}
 
-    QSpinBox, QDoubleSpinBox {{
-        background-color: rgba(10, 10, 10, {min(255, opacity_value + 20)});
-        color: #ffffff;
-        border: none;
-        padding: 0px;
-    }}
 
     /* --- FIX: Scrollbar sottili a capsula --- */
     QScrollArea {{ border: none; background: transparent; }}

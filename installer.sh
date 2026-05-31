@@ -1,5 +1,5 @@
 #!/bin/bash
-# OpenAquaero - Installatore Universale Linux (v3.0.0 Modular)
+# OpenAquaero - Installatore Universale Linux (v3.0.2 Modular)
 
 if [ "$EUID" -ne 0 ]; then
   echo "ERRORE: Per installare OpenAquaero nel sistema, esegui lo script come root (es. sudo ./installer.sh)"

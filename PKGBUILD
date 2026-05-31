@@ -1,5 +1,5 @@
 pkgname=openaquaero
-pkgver=3.0.1
+pkgver=3.0.2
 pkgrel=1
 pkgdesc="Suite di controllo per Aquaero 6 LT"
 arch=('any')
