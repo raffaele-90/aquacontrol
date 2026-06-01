@@ -499,19 +499,19 @@ class OpenAquaeroUI(QMainWindow):
                 current_rpm = rpms.get(ch.channel_id, 0)
                 if current_rpm <= c_sec.get("rpm_val", 0):
                     alarm_triggered_this_tick = True
-                    alarm_messages.append(f"Canale {ch_id_str}: RPM critici ({current_rpm} RPM)")
+                    alarm_messages.append(T("alarm_rpm_msg").format(ch=ch_id_str, rpm=current_rpm))
 
             if c_sec.get("temp_en"):
                 sensor_id = ch.combo_sensors.currentData()
                 current_temp = temps.get(sensor_id)
                 if current_temp is not None and current_temp >= c_sec.get("temp_val", 999):
                     alarm_triggered_this_tick = True
-                    alarm_messages.append(f"Canale {ch_id_str}: Temperatura critica ({current_temp:.1f} °C)")
+                    alarm_messages.append(T("alarm_temp_msg").format(ch=ch_id_str, temp=current_temp))
 
             if c_sec.get("power_en") and self.is_controlling:
                 if current_pwm_percent <= c_sec.get("power_val", 0):
                     alarm_triggered_this_tick = True
-                    alarm_messages.append(f"Canale {ch_id_str}: Crollo di Potenza ({current_pwm_percent}%)")
+                    alarm_messages.append(T("alarm_power_msg").format(ch=ch_id_str, p=current_pwm_percent))
 
         if alarm_triggered_this_tick and not self.alarm_triggered:
             self.alarm_triggered = True
@@ -524,7 +524,7 @@ class OpenAquaeroUI(QMainWindow):
                 elif os.path.exists(fallback_alarm): subprocess.Popen(["paplay", fallback_alarm])
                 else: subprocess.Popen(["paplay", "/usr/share/sounds/ocean/stereo/dialog-warning.oga"])
 
-            self.tray_icon.showMessage("🚨 EMERGENZA LOOP 🚨", " | ".join(alarm_messages), QSystemTrayIcon.Critical, 5000)
+            self.tray_icon.showMessage(T("loop_emergency"), " | ".join(alarm_messages), QSystemTrayIcon.Critical, 5000)
 
             if not hasattr(self, 'meltdown_dialog') or not self.meltdown_dialog.isVisible():
                 self.meltdown_dialog = MeltdownDialog(alarm_messages, actions_sec, None)

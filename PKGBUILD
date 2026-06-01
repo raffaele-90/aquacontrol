@@ -1,6 +1,6 @@
 pkgname=openaquaero
-pkgver=3.0.2
-pkgrel=3
+pkgver=3.0.3
+pkgrel=1
 pkgdesc="Suite di controllo per Aquaero 6 LT"
 arch=('any')
 url="https://github.com/raffaele-90/openaquaero"

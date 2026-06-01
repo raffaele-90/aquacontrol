@@ -133,6 +133,19 @@ TRANSLATIONS = {
         "dash_restore_info": "Seleziona i sensori da ripristinare nella panoramica:",
         "hw_ctrl_mode": "Modalità di controllo:",
         "hw_enable_ch": "Abilita {ch}",
+        "ui_opacity": "Trasparenza Interfaccia:",
+        "manual_range": "Range Visibile (°C):",
+        "manual_node": "Punto Selezionato:",
+        "current_val": "(Attuale: {v}°C)",
+        "hide_curve_params": "▼ Nascondi Parametri Curva",
+        "show_curve_params": "▶ Parametri Curva (TMP: {tm}-{tM} °C  |  PWR: {pm}-{pM} %)",
+        "hide_graph_ctrls": "▼ Nascondi Controlli Grafico",
+        "show_graph_ctrls": "▶ Espandi Controlli Grafico ({min}-{max} °C)",
+        "select_color": "Seleziona Colore",
+        "loop_emergency": "⚠️ Protezione Hardware Attivata",
+        "alarm_rpm_msg": "Canale {ch}: RPM critici ({rpm} RPM)",
+        "alarm_temp_msg": "Canale {ch}: Temperatura critica ({temp:.1f} °C)",
+        "alarm_power_msg": "Canale {ch}: Crollo di Potenza ({p}%)",
         "info_dialog_html": """
         <h3 style='color: #00e5ff; margin-bottom: 10px;'>OpenAquaero 3.0</h3>
         <p><b>Maintainer:</b> Raffaele Schiavone</p>
@@ -279,6 +292,19 @@ TRANSLATIONS = {
         "dash_restore_info": "Select sensors to restore to the dashboard:",
         "hw_ctrl_mode": "Control Mode:",
         "hw_enable_ch": "Enable {ch}",
+        "ui_opacity": "Interface Opacity:",
+        "manual_range": "Visible Range (°C):",
+        "manual_node": "Selected Node:",
+        "current_val": "(Current: {v}°C)",
+        "hide_curve_params": "▼ Hide Curve Parameters",
+        "show_curve_params": "▶ Curve Parameters (TMP: {tm}-{tM} °C  |  PWR: {pm}-{pM} %)",
+        "hide_graph_ctrls": "▼ Hide Graph Controls",
+        "show_graph_ctrls": "▶ Expand Graph Controls ({min}-{max} °C)",
+        "select_color": "Select Color",
+        "loop_emergency": "⚠️ Hardware Protection Triggered",
+        "alarm_rpm_msg": "Channel {ch}: Critical RPM ({rpm} RPM)",
+        "alarm_temp_msg": "Channel {ch}: Critical Temperature ({temp:.1f} °C)",
+        "alarm_power_msg": "Channel {ch}: Power Drop ({p}%)",
         "info_dialog_html": """
         <h3 style='color: #00e5ff; margin-bottom: 10px;'>OpenAquaero 3.0</h3>
         <p><b>Maintainer:</b> Raffaele Schiavone</p>
@@ -425,6 +451,19 @@ TRANSLATIONS = {
         "dash_restore_info": "Sélectionnez les capteurs à restaurer :",
         "hw_ctrl_mode": "Mode de contrôle :",
         "hw_enable_ch": "Activer {ch}",
+        "ui_opacity": "Opacité de l'interface :",
+        "manual_range": "Plage Visible (°C) :",
+        "manual_node": "Nœud Sélectionné :",
+        "current_val": "(Actuel : {v}°C)",
+        "hide_curve_params": "▼ Masquer les Paramètres",
+        "show_curve_params": "▶ Paramètres de Courbe (TMP: {tm}-{tM} °C  |  PWR: {pm}-{pM} %)",
+        "hide_graph_ctrls": "▼ Masquer les Contrôles",
+        "show_graph_ctrls": "▶ Afficher les Contrôles ({min}-{max} °C)",
+        "select_color": "Sélectionner la Couleur",
+        "loop_emergency": "⚠️ Protection Matérielle Activée",
+        "alarm_rpm_msg": "Canal {ch}: RPM critiques ({rpm} RPM)",
+        "alarm_temp_msg": "Canal {ch}: Température critique ({temp:.1f} °C)",
+        "alarm_power_msg": "Canal {ch}: Chute de Puissance ({p}%)",
         "info_dialog_html": """
         <h3 style='color: #00e5ff; margin-bottom: 10px;'>OpenAquaero 3.0</h3>
         <p><b>Mainteneur :</b> Raffaele Schiavone</p>
@@ -571,6 +610,19 @@ TRANSLATIONS = {
         "dash_restore_info": "Selecciona los sensores a restaurar:",
         "hw_ctrl_mode": "Modo de control:",
         "hw_enable_ch": "Habilitar {ch}",
+        "ui_opacity": "Transparencia de la Interfaz:",
+        "manual_range": "Rango Visible (°C):",
+        "manual_node": "Nodo Seleccionado:",
+        "current_val": "(Actual: {v}°C)",
+        "hide_curve_params": "▼ Ocultar Parámetros de Curva",
+        "show_curve_params": "▶ Parámetros de Curva (TMP: {tm}-{tM} °C  |  PWR: {pm}-{pM} %)",
+        "hide_graph_ctrls": "▼ Ocultar Controles de Gráfico",
+        "show_graph_ctrls": "▶ Expandir Controles de Gráfico ({min}-{max} °C)",
+        "select_color": "Seleccionar Color",
+        "loop_emergency": "⚠️ Protección de Hardware Activada",
+        "alarm_rpm_msg": "Canal {ch}: RPM críticos ({rpm} RPM)",
+        "alarm_temp_msg": "Canal {ch}: Temperatura crítica ({temp:.1f} °C)",
+        "alarm_power_msg": "Canal {ch}: Caída de Potencia ({p}%)",
         "info_dialog_html": """
         <h3 style='color: #00e5ff; margin-bottom: 10px;'>OpenAquaero 3.0</h3>
         <p><b>Mantenedor:</b> Raffaele Schiavone</p>
@@ -717,6 +769,19 @@ TRANSLATIONS = {
         "dash_restore_info": "Wählen Sie Sensoren zur Wiederherstellung aus:",
         "hw_ctrl_mode": "Steuermodus:",
         "hw_enable_ch": "{ch} Aktivieren",
+        "ui_opacity": "Transparenz der Oberfläche:",
+        "manual_range": "Sichtbarer Bereich (°C):",
+        "manual_node": "Ausgewählter Knoten:",
+        "current_val": "(Aktuell: {v}°C)",
+        "hide_curve_params": "▼ Kurvenparameter ausblenden",
+        "show_curve_params": "▶ Kurvenparameter (TMP: {tm}-{tM} °C  |  PWR: {pm}-{pM} %)",
+        "hide_graph_ctrls": "▼ Diagrammsteuerungen ausblenden",
+        "show_graph_ctrls": "▶ Diagrammsteuerungen einblenden ({min}-{max} °C)",
+        "select_color": "Farbe auswählen",
+        "loop_emergency": "⚠️ Hardwareschutz Ausgelöst",
+        "alarm_rpm_msg": "Kanal {ch}: Kritische Drehzahl ({rpm} RPM)",
+        "alarm_temp_msg": "Kanal {ch}: Kritische Temperatur ({temp:.1f} °C)",
+        "alarm_power_msg": "Kanal {ch}: Leistungseinbruch ({p}%)",
         "info_dialog_html": """
         <h3 style='color: #00e5ff; margin-bottom: 10px;'>OpenAquaero 3.0</h3>
         <p><b>Betreuer:</b> Raffaele Schiavone</p>

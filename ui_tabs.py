@@ -597,7 +597,7 @@ class OSDConfigTabWidget(QWidget):
         font_layout = QHBoxLayout()
         self.btn_font = QPushButton(T("osd_btn_font"))
         self.btn_font.clicked.connect(self.pick_font)
-        self.lbl_current_font = QLabel("Font: Predefinito")
+        self.lbl_current_font = QLabel(T("font_default"))
         self.lbl_current_font.setStyleSheet("color: #a6adc8; font-style: italic;")
         font_layout.addWidget(self.btn_font)
         font_layout.addWidget(self.lbl_current_font)
@@ -676,7 +676,7 @@ class OSDConfigTabWidget(QWidget):
         global_config["osd_config"] = conf
 
     def pick_color(self, target):
-        color = QColorDialog.getColor(Qt.white, self, "Seleziona Colore")
+        color = QColorDialog.getColor(Qt.white, self, T("select_color"))
         if color.isValid():
             self.set_dirty()
             hex_c = color.name()
@@ -791,7 +791,7 @@ class SettingsTabWidget(QWidget):
         # --- AGGIUNTA SLIDER OPACITÀ ---
         sys_layout.addSpacing(15)
         opac_row = QHBoxLayout()
-        lbl_opac = QLabel("Trasparenza Interfaccia:")
+        lbl_opac = QLabel(T("ui_opacity"))
         lbl_opac.setStyleSheet("color: #00e5ff; font-weight: bold;")
 
         self.slider_window_opac = QSlider(Qt.Horizontal)

@@ -99,13 +99,15 @@ class CurveVisualizer(QWidget):
                 x_pos = margin_x
                 painter.setPen(QPen(QColor("#a6adc8"), 2, Qt.DashLine))
                 painter.drawLine(int(x_pos), margin_y, int(x_pos), h - margin_y)
-                painter.drawText(int(x_pos) + 8, margin_y + 12, f"< {int(vis_t_min)}°C (Attuale: {self.current_temp:.1f}°C)")
+                val_attuale = T("current_val").format(v=f"{self.current_temp:.1f}")
+                painter.drawText(int(x_pos) + 8, margin_y + 12, f"< {int(vis_t_min)}°C {val_attuale}")
 
             elif self.current_temp > vis_t_max:
                 x_pos = w - margin_x
                 painter.setPen(QPen(QColor("#ff3333"), 2, Qt.DashLine))
                 painter.drawLine(int(x_pos), margin_y, int(x_pos), h - margin_y)
-                text = f"> {int(vis_t_max)}°C (Attuale: {self.current_temp:.1f}°C)"
+                val_attuale = T("current_val").format(v=f"{self.current_temp:.1f}")
+                text = f"> {int(vis_t_max)}°C {val_attuale}"
                 tw = painter.fontMetrics().horizontalAdvance(text)
                 painter.drawText(int(x_pos) - tw - 8, margin_y + 12, text)
 
@@ -311,13 +313,15 @@ class InteractiveCurveWidget(QWidget):
                 x_pos = self.margin_x
                 painter.setPen(QPen(QColor("#a6adc8"), 2, Qt.DashLine))
                 painter.drawLine(int(x_pos), self.margin_y, int(x_pos), h - self.margin_y)
-                painter.drawText(int(x_pos) + 8, self.margin_y + 12, f"< {int(self.MIN_T)}°C (Attuale: {self.current_temp:.1f}°C)")
+                val_attuale = T("current_val").format(v=f"{self.current_temp:.1f}")
+                painter.drawText(int(x_pos) + 8, self.margin_y + 12, f"< {int(self.MIN_T)}°C {val_attuale}")
 
             elif self.current_temp > self.MAX_T:
                 x_pos = w - self.margin_x
                 painter.setPen(QPen(QColor("#ff3333"), 2, Qt.DashLine))
                 painter.drawLine(int(x_pos), self.margin_y, int(x_pos), h - self.margin_y)
-                text = f"> {int(self.MAX_T)}°C (Attuale: {self.current_temp:.1f}°C)"
+                val_attuale = T("current_val").format(v=f"{self.current_temp:.1f}")
+                text = f"> {int(self.MAX_T)}°C {val_attuale}"
                 tw = painter.fontMetrics().horizontalAdvance(text)
                 painter.drawText(int(x_pos) - tw - 8, self.margin_y + 12, text)
 
@@ -575,7 +579,7 @@ class ChannelControlWidget(QGroupBox):
         manual_controls_layout.setContentsMargins(0, 5, 0, 0)
 
         scale_layout = QHBoxLayout()
-        lbl_scale = QLabel("Range Visibile (°C):")
+        lbl_scale = QLabel(T("manual_range"))
         lbl_scale.setStyleSheet("color: #a6adc8; font-size: 12px; font-weight: bold;")
         self.spin_scale_min = QSpinBox()
         self.spin_scale_min.setRange(0, 150)
@@ -600,7 +604,7 @@ class ChannelControlWidget(QGroupBox):
         self.box_node_edit = QWidget()
         node_layout = QHBoxLayout(self.box_node_edit)
         node_layout.setContentsMargins(0, 10, 0, 0)
-        lbl_node_edit = QLabel("Punto Selezionato:")
+        lbl_node_edit = QLabel(T("manual_node"))
         lbl_node_edit.setStyleSheet("color: #00e5ff;")
 
         self.spin_temp = QDoubleSpinBox()
@@ -741,13 +745,13 @@ class ChannelControlWidget(QGroupBox):
 
     def update_auto_toggle_text(self):
         if self.container_auto_controls.isVisible():
-            self.btn_toggle_auto.setText("▼ Nascondi Parametri Curva")
+            self.btn_toggle_auto.setText(T("hide_curve_params"))
         else:
             t_m = self.slider_t_min.value()
             t_M = self.slider_t_max.value()
             p_m = self.slider_p_min.value()
             p_M = self.slider_p_max.value()
-            self.btn_toggle_auto.setText(f"▶ Parametri Curva (TMP: {t_m}-{t_M} °C  |  PWR: {p_m}-{p_M} %)")
+            self.btn_toggle_auto.setText(T("show_curve_params").format(tm=t_m, tM=t_M, pm=p_m, pM=p_M))
 
     def toggle_manual_controls(self):
         is_visible = self.container_manual_controls.isVisible()
@@ -756,11 +760,11 @@ class ChannelControlWidget(QGroupBox):
 
     def update_manual_toggle_text(self):
         if self.container_manual_controls.isVisible():
-            self.btn_toggle_manual.setText("▼ Nascondi Controlli Grafico")
+            self.btn_toggle_manual.setText(T("hide_graph_ctrls"))
         else:
             min_x = self.spin_scale_min.value()
             max_x = self.spin_scale_max.value()
-            self.btn_toggle_manual.setText(f"▶ Espandi Controlli Grafico ({min_x}-{max_x} °C)")
+            self.btn_toggle_manual.setText(T("show_graph_ctrls").format(min=min_x, max=max_x))
 
     def on_manual_scale_changed(self):
         min_v = self.spin_scale_min.value()
