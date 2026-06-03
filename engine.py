@@ -1,3 +1,19 @@
+# AquaControl
+# Copyright (C) 2026 Raffaele Schiavone
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import subprocess
 import datetime
 import os
@@ -14,7 +30,7 @@ except ImportError:
 
 class AquaeroEngine:
     """
-    Core hardware abstraction layer for OpenAquaero.
+    Core hardware abstraction layer for AquaControl.
     Handles device mapping, generic Linux hwmon scanning, PWM calculations,
     Virtual Sensors (Delta T), PID logic, and Hardware Mapping (Min Power/Boost).
     """
@@ -481,7 +497,7 @@ class AquaeroEngine:
 
     def trigger_emergency_shutdown(self, sensor_name, temperature, delay_seconds=0):
         """Registra il log di emergenza e delega lo spegnimento forzato a systemd."""
-        log_dir = os.path.expanduser("~/.config/openaquaero")
+        log_dir = os.path.expanduser("~/.config/aquacontrol")
         os.makedirs(log_dir, exist_ok=True)
         log_file = os.path.join(log_dir, "emergency_log.txt")
 
@@ -493,8 +509,15 @@ class AquaeroEngine:
             with open(log_file, "a") as f:
                 f.write(log_message)
         except Exception:
-            # In emergenza non blocchiamo l'arresto se il log fallisce
+            # In emergenza non blocchiamo l'arresto se la scrittura del log fallisce
             pass
+
+        # Delega la pianificazione dello spegnimento a systemd per garantire
+        # l'esecuzione anche in caso di crash del processo Python.
+        if delay_seconds > 0:
+            subprocess.Popen(["systemd-run", f"--on-active={delay_seconds}", "systemctl", "poweroff", "--force"])
+        else:
+            subprocess.Popen(["systemctl", "--force", "--force", "poweroff"])
 
         # FIX: Affidiamo la pianificazione dello spegnimento a systemd.
         # Diventa indipendente ed eseguito anche se il processo Python dovesse venire chiuso o crashare.

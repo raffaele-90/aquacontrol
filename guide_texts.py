@@ -1,3 +1,19 @@
+# AquaControl
+# Copyright (C) 2026 Raffaele Schiavone
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 from config_manager import global_config
 
 GUIDE_TRANSLATIONS = {
@@ -26,17 +42,17 @@ GUIDE_TRANSLATIONS = {
         <hr style="border: 1px solid #313244; margin: 15px 0;">
 
         <h3 style="color: #00e5ff;">Sensore Virtuale (ΔT)</h3>
-        <p>Attivando il <b>Sensore Virtuale (ΔT)</b>, OpenAquaero calcola costantemente la differenza tra il sensore principale impostato e un secondo sensore di riferimento: <br><code style="background-color: #1e1e2e; padding: 2px 5px;">[Principale] - [Riferimento] = ΔT</code></p>
+        <p>Attivando il <b>Sensore Virtuale (ΔT)</b>, AquaControl calcola costantemente la differenza tra il sensore principale impostato e un secondo sensore di riferimento: <br><code style="background-color: #1e1e2e; padding: 2px 5px;">[Principale] - [Riferimento] = ΔT</code></p>
         <p><b>Scenario di utilizzo tipico:</b></p>
         <p>In un sistema di raffreddamento a liquido convenzionale, la temperatura dei componenti non può mai scendere sotto la temperatura ambientale. Una curva impostata per tenere il liquido circa a 35°C funzionerà in inverno, ma in estate (con T amb > 35°C) costringerà i rotori delle ventole al 100% per raggiungere una temperatura fisicamente impossibile.</p>
         <p>Sottraendo la <i>Temperatura dell'Aria</i> (riferimento) alla <i>Temperatura del Liquido</i> (principale), è possibile impostare un <b>Obiettivo</b> PID di <b>10°C (ΔT)</b>. In questo modo, il sistema manterrà l'acqua a 30°C in inverno (20°C ambiente + 10) e a 40°C in estate (30°C ambiente + 10). Lo sforzo acustico e le prestazioni rimarranno costanti in ogni stagione, senza necessità di riprogrammare il software.</p>
         <hr style="border: 1px solid #313244; margin: 15px 0;">
 
         <h3 style="color: #00e5ff;">Cambio Profilo Automatico (Auto-Switch)</h3>
-        <p>Questa funzione permette ad OpenAquaero di caricare autonomamente un profilo specifico (es. "Gaming") quando avvii determinati programmi, per poi ripristinare il profilo alla chiusura.</p>
+        <p>Questa funzione permette ad AquaControl di caricare autonomamente un profilo specifico quando avvii determinati programmi, per poi ripristinare il profilo alla chiusura.</p>
         <p><b>Come associare i programmi al profilo specifico:</b><br>
         Essendo un software nativo Linux, non è necessario cercare o inserire il percorso assoluto dell'eseguibile. È sufficiente digitare il <b>nome del processo</b> così come verrebbe letto dal terminale di sistema.</p>
-        <p>Ad esempio, basterà scrivere <code>steam</code>, <code>firefox</code>, <code>blender</code>, ecc. per garantire che OpenAquaero rilevi immediatamente l'apertura del programma, indipendentemente dalla sua directory di installazione.</p>
+        <p>Ad esempio, basterà scrivere <code>steam</code>, <code>firefox</code>, <code>blender</code>, ecc. per garantire che AquaControl rilevi immediatamente l'apertura del programma, indipendentemente dalla sua directory di installazione.</p>
         <hr style="border: 1px solid #313244; margin: 15px 0;">
 
         <h3 style="color: #00e5ff;">Potenza Minima e Start Boost</h3>
@@ -70,17 +86,17 @@ GUIDE_TRANSLATIONS = {
         <hr style="border: 1px solid #313244; margin: 15px 0;">
 
         <h3 style="color: #00e5ff;">Virtual Sensor (ΔT)</h3>
-        <p>By activating the <b>Virtual Sensor (ΔT)</b>, OpenAquaero constantly calculates the difference between the set main sensor and a second reference sensor: <br><code style="background-color: #1e1e2e; padding: 2px 5px;">[Main] - [Reference] = ΔT</code></p>
+        <p>By activating the <b>Virtual Sensor (ΔT)</b>, AquaControl constantly calculates the difference between the set main sensor and a second reference sensor: <br><code style="background-color: #1e1e2e; padding: 2px 5px;">[Main] - [Reference] = ΔT</code></p>
         <p><b>Typical use scenario:</b></p>
         <p>In a conventional liquid cooling system, component temperatures can never drop below the ambient temperature. A curve set to keep the liquid at around 35°C will work in winter, but in summer (with Tamb > 35°C) it will force the fan rotors to 100% to reach a physically impossible temperature.</p>
         <p>By subtracting the <i>Air Temperature</i> (reference) from the <i>Liquid Temperature</i> (main), you can set a PID <b>Target</b> of <b>10°C (ΔT)</b>. This way, the system will maintain the water at 30°C in winter (20°C ambient + 10) and 40°C in summer (30°C ambient + 10). Acoustic effort and performance will remain constant in every season, without the need to reprogram the software.</p>
         <hr style="border: 1px solid #313244; margin: 15px 0;">
 
         <h3 style="color: #00e5ff;">Auto Profile Switch (Auto-Switch)</h3>
-        <p>This feature allows OpenAquaero to autonomously load a specific profile (e.g., "Gaming") when you launch certain programs, and then restore the profile upon closing.</p>
+        <p>This feature allows AquaControl to autonomously load a specific profile when you launch certain programs, and then restore the profile upon closing.</p>
         <p><b>How to associate programs to the specific profile:</b><br>
         Being a native Linux software, there is no need to find or enter the absolute path of the executable. Simply type the <b>process name</b> exactly as it would be read by the system terminal.</p>
-        <p>For example, just typing <code>steam</code>, <code>firefox</code>, <code>blender</code>, etc., ensures that OpenAquaero immediately detects the opening of the program, regardless of its installation directory.</p>
+        <p>For example, just typing <code>steam</code>, <code>firefox</code>, <code>blender</code>, etc., ensures that AquaControl immediately detects the opening of the program, regardless of its installation directory.</p>
         <hr style="border: 1px solid #313244; margin: 15px 0;">
 
         <h3 style="color: #00e5ff;">Minimum Power and Start Boost</h3>
@@ -114,17 +130,17 @@ GUIDE_TRANSLATIONS = {
         <hr style="border: 1px solid #313244; margin: 15px 0;">
 
         <h3 style="color: #00e5ff;">Capteur Virtuel (ΔT)</h3>
-        <p>En activant le <b>Capteur Virtuel (ΔT)</b>, OpenAquaero calcule constamment la différence entre le capteur principal défini et un deuxième capteur de référence : <br><code style="background-color: #1e1e2e; padding: 2px 5px;">[Principal] - [Référence] = ΔT</code></p>
+        <p>En activant le <b>Capteur Virtuel (ΔT)</b>, AquaControl calcule constamment la différence entre le capteur principal défini et un deuxième capteur de référence : <br><code style="background-color: #1e1e2e; padding: 2px 5px;">[Principal] - [Référence] = ΔT</code></p>
         <p><b>Scénario d'utilisation typique :</b></p>
         <p>Dans un système de refroidissement liquide conventionnel, la température des composants ne peut jamais descendre en dessous de la température ambiante. Une courbe réglée pour maintenir le liquide à environ 35°C fonctionnera en hiver, mais en été (avec Tamb > 35°C), elle forcera les rotors des ventilateurs à 100% pour atteindre une température physiquement impossible.</p>
         <p>En soustrayant la <i>Température de l'Air</i> (référence) de la <i>Température du Liquide</i> (principal), il est possible de définir une <b>Cible</b> PID de <b>10°C (ΔT)</b>. De cette façon, le système maintiendra l'eau à 30°C en hiver (20°C ambiant + 10) et à 40°C en été (30°C ambiant + 10). L'effort acoustique et les performances resteront constants à chaque saison, sans qu'il soit nécessaire de reprogrammer le logiciel.</p>
         <hr style="border: 1px solid #313244; margin: 15px 0;">
 
         <h3 style="color: #00e5ff;">Changement de Profil Automatique (Auto-Switch)</h3>
-        <p>Cette fonction permet à OpenAquaero de charger de manière autonome un profil spécifique (ex. "Gaming") lorsque vous lancez certains programmes, puis de restaurer le profil à la fermeture.</p>
+        <p>Cette fonction permet à AquaControl de charger de manière autonome un profil spécifique lorsque vous lancez certains programmes, puis de restaurer le profil à la fermeture.</p>
         <p><b>Comment associer les programmes au profil spécifique :</b><br>
         Étant un logiciel natif Linux, il n'est pas nécessaire de chercher ou d'entrer le chemin absolu de l'exécutable. Il suffit de taper le <b>nom du processus</b> tel qu'il serait lu par le terminal du système.</p>
-        <p>Par exemple, il suffira d'écrire <code>steam</code>, <code>firefox</code>, <code>blender</code>, etc. pour s'assurer qu'OpenAquaero détecte immédiatement l'ouverture du programme, quel que soit son répertoire d'installation.</p>
+        <p>Par exemple, il suffira d'écrire <code>steam</code>, <code>firefox</code>, <code>blender</code>, etc. pour s'assurer qu'AquaControl détecte immédiatement l'ouverture du programme, quel que soit son répertoire d'installation.</p>
         <hr style="border: 1px solid #313244; margin: 15px 0;">
 
         <h3 style="color: #00e5ff;">Puissance Minimale et Start Boost</h3>
@@ -137,7 +153,7 @@ GUIDE_TRANSLATIONS = {
         <h2 style="color: #cdd6f4;">Benutzerhandbuch</h2>
         <br>
         <h3 style="color: #00e5ff;">Erweiterter PID-Modus (Proportional, Integral, Derivativ)</h3>
-        <p>Im Gegensatz zum automatischen Modus nutzt der PID-Modus einen intelligenten Algorithmus, der die Leistung dynamisch anpasst, um den gewählten Referenzsensor auf der eingestellten Temperatur (<b>Ziel</b>) zu halten, basierend auf der Systemlast in Echtzeit.</p>
+        <p>Im Gegensatz zum automatischen Modus nutzt der PID-Modus einen intelligenten Algorithmus, der die Leistung dynamisch anpasst, um den gewählten Referenzsensor auf der eingestellten Temperatur (<b>Ziel</b>), basierend auf der Systemlast in Echtzeit.</p>
         <p>Die Software bietet drei voreingestellte Profile (<b>Langsam, Normal, Schnell</b>). Für erfahrene Benutzer ermöglicht der <b>Manuelle</b> Modus die Feinabstimmung der drei mathematischen Parameter, um den Algorithmus an die spezifischen Eigenschaften des eigenen Systems anzupassen:</p>
 
         <ul style="margin-top: 5px; margin-bottom: 15px;">
@@ -158,17 +174,17 @@ GUIDE_TRANSLATIONS = {
         <hr style="border: 1px solid #313244; margin: 15px 0;">
 
         <h3 style="color: #00e5ff;">Virtueller Sensor (ΔT)</h3>
-        <p>Durch Aktivierung des <b>Virtuellen Sensors (ΔT)</b> berechnet OpenAquaero ständig die Differenz zwischen dem eingestellten Hauptsensor und einem zweiten Referenzsensor: <br><code style="background-color: #1e1e2e; padding: 2px 5px;">[Haupt] - [Referenz] = ΔT</code></p>
+        <p>Durch Aktivierung des <b>Virtuellen Sensors (ΔT)</b> berechnet AquaControl ständig die Differenz zwischen dem eingestellten Hauptsensor und einem zweiten Referenzsensor: <br><code style="background-color: #1e1e2e; padding: 2px 5px;">[Haupt] - [Referenz] = ΔT</code></p>
         <p><b>Typisches Anwendungsszenario:</b></p>
-        <p>In einem herkömmlichen Wasserkühlungssystem kann die Temperatur der Komponenten niemals unter die Umgebungstemperatur fallen. Eine Kurve, die darauf eingestellt ist, die Flüssigkeit auf etwa 35°C zu halten, funktioniert im Winter, zwingt die Lüfterrotoren im Sommer (bei Tamb > 35°C) jedoch auf 100 %, um eine physikalisch unmögliche Temperatur zu erreichen.</p>
+        <p>In einem herkömmlichen Wasserkühlungssystem kann die Temperatur der Komponenten niemals unter die Umgebungstemperatur fallen. Eine Kurve, die darauf eingestellt ist, die Flüssigkeit auf etwa 35°C zu halten, funktioniert im Winter, zwingt die Lüfterrotoren im Sommer (bei Tamb > 35°C) jedoch auf 100 %, um eine physiquement unmögliche Temperatur zu erreichen.</p>
         <p>Indem Sie die <i>Lufttemperatur</i> (Referenz) von der <i>Flüssigkeitstemperatur</i> (Haupt) abziehen, können Sie ein PID-<b>Ziel</b> von <b>10°C (ΔT)</b>. Auf diese Weise hält das System das Wasser im Winter auf 30°C (20°C Umgebung + 10) und im Sommer auf 40°C (30°C Umgebung + 10). Die akustische Belastung und die Leistung bleiben in jeder Jahreszeit konstant, ohne dass die Software neu programmiert werden muss.</p>
         <hr style="border: 1px solid #313244; margin: 15px 0;">
 
         <h3 style="color: #00e5ff;">Automatischer Profilwechsel (Auto-Switch)</h3>
-        <p>Diese Funktion ermöglicht es OpenAquaero, beim Start bestimmter Programme automatisch ein bestimmtes Profil (z. B. "Gaming") zu laden und das Profil beim Schließen wiederherzustellen.</p>
+        <p>Diese Funktion ermöglicht es AquaControl, beim Start bestimmter Programme automatisch ein bestimmtes Profil zu laden und das Profil beim Schließen wiederherzustellen.</p>
         <p><b>So ordnen Sie Programme dem spezifischen Profil zu:</b><br>
         Da es sich um eine native Linux-Software handelt, müssen Sie nicht nach dem absoluten Pfad der ausführbaren Datei suchen. Geben Sie einfach den <b>Prozessnamen</b> genauso ein, wie er vom Systemterminal gelesen würde.</p>
-        <p>Wenn Sie beispielsweise <code>steam</code>, <code>firefox</code>, <code>blender</code> usw. eingeben, erkennt OpenAquaero das Öffnen des Programms sofort, unabhängig von seinem Installationsverzeichnis.</p>
+        <p>Wenn Sie beispielsweise <code>steam</code>, <code>firefox</code>, <code>blender</code> usw. eingeben, erkennt AquaControl das Öffnen des Programms sofort, unabhängig von seinem Installationsverzeichnis.</p>
         <hr style="border: 1px solid #313244; margin: 15px 0;">
 
         <h3 style="color: #00e5ff;">Minimale Leistung und Start Boost</h3>
@@ -202,17 +218,17 @@ GUIDE_TRANSLATIONS = {
         <hr style="border: 1px solid #313244; margin: 15px 0;">
 
         <h3 style="color: #00e5ff;">Sensor Virtual (ΔT)</h3>
-        <p>Al activar el <b>Sensor Virtual (ΔT)</b>, OpenAquaero calcula constantemente la diferencia entre el sensor principal establecido y un segundo sensor de referencia: <br><code style="background-color: #1e1e2e; padding: 2px 5px;">[Principal] - [Referencia] = ΔT</code></p>
+        <p>Al activar el <b>Sensor Virtual (ΔT)</b>, AquaControl calcula constantemente la diferencia entre el sensor principal establecido y un segundo sensor de referencia: <br><code style="background-color: #1e1e2e; padding: 2px 5px;">[Principal] - [Referencia] = ΔT</code></p>
         <p><b>Escenario de uso típico:</b></p>
         <p>En un sistema de refrigeración líquida convencional, la temperatura de los componentes nunca puede descender por debajo de la temperatura ambiente. Una curva configurada para mantener el líquido a unos 35°C funcionará en invierno, pero en verano (con Tamb > 35°C) forzará los rotores de los ventiladores al 100% para alcanzar una temperatura físicamente imposible.</p>
         <p>Restando la <i>Temperatura del Aire</i> (referencia) a la <i>Temperatura del Líquido</i> (principal), es posible establecer un <b>Objetivo</b> PID de <b>10°C (ΔT)</b>. De esta forma, el sistema mantendrá el agua a 30°C en invierno (20°C ambiente + 10) y a 40°C en verano (30°C ambiente + 10). El esfuerzo acústico y el rendimiento se mantendrán constantes en cada estación, sin necesidad de reprogramar el software.</p>
         <hr style="border: 1px solid #313244; margin: 15px 0;">
 
         <h3 style="color: #00e5ff;">Cambio Automático de Perfil (Auto-Switch)</h3>
-        <p>Esta función permite a OpenAquaero cargar de forma autónoma un perfil específico (ej. "Gaming") cuando inicias determinados programas, para luego restaurar el perfil al cerrarlos.</p>
+        <p>Esta función permite a AquaControl cargar de forma autónoma un perfil específico cuando inicias determinados programas, para luego restaurar el perfil al cerrarlos.</p>
         <p><b>Cómo asociar los programas al perfil específico:</b><br>
         Al ser un software nativo de Linux, no es necesario buscar o introducir la ruta absoluta del ejecutable. Basta con escribir el <b>nombre del proceso</b> tal y como lo leería el terminal del sistema.</p>
-        <p>Por ejemplo, bastará con escribir <code>steam</code>, <code>firefox</code>, <code>blender</code>, etc. para garantizar que OpenAquaero detecte inmediatamente la apertura del programa, independientemente de su directorio de instalación.</p>
+        <p>Por ejemplo, bastará con escribir <code>steam</code>, <code>firefox</code>, <code>blender</code>, etc. para garantizar que AquaControl detecte inmediatamente la apertura del programa, independientemente de su directorio de instalación.</p>
         <hr style="border: 1px solid #313244; margin: 15px 0;">
 
         <h3 style="color: #00e5ff;">Potencia Mínima y Start Boost</h3>

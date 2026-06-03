@@ -1,23 +1,38 @@
-#!/bin/bash
-# OpenAquaero - Uninstaller Universale Linux
+# AquaControl
+# Copyright (C) 2026 Raffaele Schiavone
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Controllo privilegi di root
+#!/bin/bash
+# AquaControl - Uninstaller Universale Linux
+
 if [ "$EUID" -ne 0 ]; then
-  echo "ERRORE: Per disinstallare OpenAquaero, esegui lo script come root (es. sudo ./uninstaller.sh)"
+  echo "ERRORE: Per disinstallare AquaControl, esegui lo script come root (es. sudo ./uninstaller.sh)"
   exit 1
 fi
 
 echo "=> Rimozione dei file eseguibili e librerie..."
-rm -rf /usr/lib/openaquaero
-rm -f /usr/bin/openaquaero
+rm -rf /usr/lib/aquacontrol
+rm -f /usr/bin/aquacontrol
 
 echo "=> Rimozione del lanciatore e dell'icona..."
-rm -f /usr/share/applications/openaquaero.desktop
-rm -f /usr/share/icons/hicolor/512x512/apps/openaquaero.png
+rm -f /usr/share/applications/aquacontrol.desktop
+rm -f /usr/share/icons/hicolor/512x512/apps/aquacontrol.png
 
 echo "=> Rimozione delle regole di sistema (udev e polkit)..."
 rm -f /etc/udev/rules.d/99-aquaero.rules
-rm -f /etc/polkit-1/rules.d/99-openaquaero-shutdown.rules
+rm -f /etc/polkit-1/rules.d/99-aquacontrol-shutdown.rules
 
 echo "=> Aggiornamento dei demoni di sistema e cache..."
 udevadm control --reload-rules
@@ -28,4 +43,4 @@ if command -v gtk-update-icon-cache &> /dev/null; then
 fi
 
 echo "=> Disinstallazione di sistema completata!"
-echo "Nota: I tuoi profili personali in ~/.config/openaquaero non sono stati eliminati."
+echo "Nota: I tuoi profili personali in ~/.config/aquacontrol non sono stati eliminati."

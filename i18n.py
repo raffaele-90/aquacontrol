@@ -1,8 +1,24 @@
+# AquaControl
+# Copyright (C) 2026 Raffaele Schiavone
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 from config_manager import global_config
 
 TRANSLATIONS = {
     "it": {
-        "app_title": "OpenAquaero - Pannello di Controllo",
+        "app_title": "AquaControl - Pannello di Controllo",
         "profiles": "Profili Termici",
         "save_btn": "Salva",
         "placeholder": "Es. 'Gaming' o 'Silent'",
@@ -24,7 +40,7 @@ TRANSLATIONS = {
         "p_fixed": "Potenza:",
         "gamma": "Curvatura:",
         "tray_show": "Mostra Pannello",
-        "tray_msg": "OpenAquaero attivo in background.",
+        "tray_msg": "AquaControl attivo in background.",
         "info_btn": "ℹ Info",
         "err_sensor": "--",
         "mod_fixed_lbl": "Fissa",
@@ -146,22 +162,21 @@ TRANSLATIONS = {
         "alarm_rpm_msg": "Canale {ch}: RPM critici ({rpm} RPM)",
         "alarm_temp_msg": "Canale {ch}: Temperatura critica ({temp:.1f} °C)",
         "alarm_power_msg": "Canale {ch}: Crollo di Potenza ({p}%)",
-        "info_dialog_html": """
-        <h3 style='color: #00e5ff; margin-bottom: 10px;'>OpenAquaero 3.0</h3>
+       "info_dialog_html": """
+        <h3 style='color: #00e5ff; margin-bottom: 10px;'>AquaControl 3.1</h3>
         <p><b>Maintainer:</b> Raffaele Schiavone</p>
-        <p><b>Sviluppo:</b> Assistito da Google Gemini</p>
         <p>Progetto indipendente, rilasciato sotto licenza GPLv3.</p>
         <hr style='border: 1px solid #313244; margin: 15px 0;'>
         <p style='color: #f38ba8; font-size: 14px;'><b>⚠️ Avviso di Compatibilità</b></p>
         <p style='font-size: 13px; line-height: 1.5; color: #cdd6f4;'>
         Testato e verificato su Aquaero 6LT con <b>Firmware 2104</b>.<br><br>
         <span style='color: #fab387; font-weight: bold;'>Si consiglia caldamente di non aggiornare il firmware della scheda.</span><br>
-        Gli aggiornamenti ufficiali possono alterare deliberatamente i protocolli di comunicazione USB, rompendo la compatibilità con questo software per forzare l'uso di sistemi operativi proprietari.
+        Gli aggiornamenti ufficiali possono alterare deliberatamente i protocolli di comunicazione USB, rompendo la compatibilità con questo software, per forzarti a utilizzare la loro suite ufficiale, rilasciata esclusivamente su sistemi operativi proprietari.
         </p>
         """,
     },
     "en": {
-        "app_title": "OpenAquaero - Control Panel",
+        "app_title": "AquaControl - Control Panel",
         "profiles": "Profiles",
         "save_btn": "Save",
         "placeholder": "E.g. 'Gaming'",
@@ -183,7 +198,7 @@ TRANSLATIONS = {
         "p_fixed": "Power:",
         "gamma": "Curve:",
         "tray_show": "Show Panel",
-        "tray_msg": "OpenAquaero active in the background.",
+        "tray_msg": "AquaControl active in the background.",
         "info_btn": "ℹ Info",
         "err_sensor": "--",
         "mod_fixed_lbl": "Fixed",
@@ -306,21 +321,20 @@ TRANSLATIONS = {
         "alarm_temp_msg": "Channel {ch}: Critical Temperature ({temp:.1f} °C)",
         "alarm_power_msg": "Channel {ch}: Power Drop ({p}%)",
         "info_dialog_html": """
-        <h3 style='color: #00e5ff; margin-bottom: 10px;'>OpenAquaero 3.0</h3>
+        <h3 style='color: #00e5ff; margin-bottom: 10px;'>AquaControl 3.1</h3>
         <p><b>Maintainer:</b> Raffaele Schiavone</p>
-        <p><b>Development:</b> Assisted by Google Gemini</p>
         <p>Independent project, released under the GPLv3 license.</p>
         <hr style='border: 1px solid #313244; margin: 15px 0;'>
         <p style='color: #f38ba8; font-size: 14px;'><b>⚠️ Compatibility Warning</b></p>
         <p style='font-size: 13px; line-height: 1.5; color: #cdd6f4;'>
         Tested and verified on Aquaero 6LT with <b>Firmware 2104</b>.<br><br>
         <span style='color: #fab387; font-weight: bold;'>It is strongly advised not to update the board's firmware.</span><br>
-        Official updates may deliberately alter USB communication protocols, breaking compatibility with this software to force the use of proprietary operating systems.
+        Official updates may deliberately alter USB communication protocols, breaking compatibility with this software, to force the use of their official suite, which is strictly released for proprietary operating systems.
         </p>
         """,
     },
     "fr": {
-        "app_title": "OpenAquaero - Panneau de Contrôle",
+        "app_title": "AquaControl - Panneau de Contrôle",
         "profiles": "Profils Thermiques",
         "save_btn": "Enregistrer",
         "placeholder": "Ex. 'Gaming' ou 'Silent'",
@@ -342,7 +356,7 @@ TRANSLATIONS = {
         "p_fixed": "Puissance :",
         "gamma": "Courbure :",
         "tray_show": "Afficher le panneau",
-        "tray_msg": "OpenAquaero actif en arrière-plan.",
+        "tray_msg": "AquaControl actif en arrière-plan.",
         "info_btn": "ℹ Info",
         "err_sensor": "--",
         "mod_fixed_lbl": "Fixe",
@@ -465,21 +479,20 @@ TRANSLATIONS = {
         "alarm_temp_msg": "Canal {ch}: Température critique ({temp:.1f} °C)",
         "alarm_power_msg": "Canal {ch}: Chute de Puissance ({p}%)",
         "info_dialog_html": """
-        <h3 style='color: #00e5ff; margin-bottom: 10px;'>OpenAquaero 3.0</h3>
+        <h3 style='color: #00e5ff; margin-bottom: 10px;'>AquaControl 3.1</h3>
         <p><b>Mainteneur :</b> Raffaele Schiavone</p>
-        <p><b>Développement :</b> Assisté par Google Gemini</p>
         <p>Projet indépendant, publié sous licence GPLv3.</p>
         <hr style='border: 1px solid #313244; margin: 15px 0;'>
         <p style='color: #f38ba8; font-size: 14px;'><b>⚠️ Avertissement de Compatibilité</b></p>
         <p style='font-size: 13px; line-height: 1.5; color: #cdd6f4;'>
         Testé et vérifié sur Aquaero 6LT avec le <b>Firmware 2104</b>.<br><br>
         <span style='color: #fab387; font-weight: bold;'>Il est fortement déconseillé de mettre à jour le firmware de la carte.</span><br>
-        Les mises à jour officielles peuvent délibérément altérer les protocoles de communication USB, rompant la compatibilité avec ce logiciel pour forcer l'utilisation de systèmes d'exploitation propriétaires.
+        Les mises à jour officielles peuvent altérer délibérément les protocoles de communication USB, rompant la compatibilité avec ce logiciel, pour vous forcer à utiliser leur suite officielle, disponible exclusivement sur des systèmes d'exploitation propriétaires.
         </p>
         """,
     },
     "es": {
-        "app_title": "OpenAquaero - Panel de Control",
+        "app_title": "AquaControl - Panel de Control",
         "profiles": "Perfiles Térmicos",
         "save_btn": "Guardar",
         "placeholder": "Ej. 'Gaming' o 'Silent'",
@@ -501,7 +514,7 @@ TRANSLATIONS = {
         "p_fixed": "Potencia:",
         "gamma": "Curva:",
         "tray_show": "Mostrar Panel",
-        "tray_msg": "OpenAquaero activo en segundo plano.",
+        "tray_msg": "AquaControl activo en segundo plano.",
         "info_btn": "ℹ Info",
         "err_sensor": "--",
         "mod_fixed_lbl": "Fijo",
@@ -566,7 +579,7 @@ TRANSLATIONS = {
         "dialog_del_msg": "¿Eliminar el perfil '{p}'?",
         "dialog_warn_title": "Advertencia",
         "dialog_warn_default": "Sobrescribir 'Default' al guardar.",
-        "dialog_ren_title": "Renombrar",
+        "dialog_ren_title": "Renommer",
         "dialog_ren_msg": "Nuevo nombre:",
         "alarm_critical_title": "🚨 ALARMA CRÍTICA 🚨",
         "alarm_cancel_exec": "CANCELAR ({s}s)",
@@ -623,22 +636,21 @@ TRANSLATIONS = {
         "alarm_rpm_msg": "Canal {ch}: RPM críticos ({rpm} RPM)",
         "alarm_temp_msg": "Canal {ch}: Temperatura crítica ({temp:.1f} °C)",
         "alarm_power_msg": "Canal {ch}: Caída de Potencia ({p}%)",
-        "info_dialog_html": """
-        <h3 style='color: #00e5ff; margin-bottom: 10px;'>OpenAquaero 3.0</h3>
+       "info_dialog_html": """
+        <h3 style='color: #00e5ff; margin-bottom: 10px;'>AquaControl 3.1</h3>
         <p><b>Mantenedor:</b> Raffaele Schiavone</p>
-        <p><b>Desarrollo:</b> Asistido por Google Gemini</p>
         <p>Proyecto independiente, publicado bajo la licencia GPLv3.</p>
         <hr style='border: 1px solid #313244; margin: 15px 0;'>
         <p style='color: #f38ba8; font-size: 14px;'><b>⚠️ Advertencia de Compatibilidad</b></p>
         <p style='font-size: 13px; line-height: 1.5; color: #cdd6f4;'>
         Probado y verificado en Aquaero 6LT con <b>Firmware 2104</b>.<br><br>
         <span style='color: #fab387; font-weight: bold;'>Se recomienda encarecidamente no actualizar el firmware de la placa.</span><br>
-        Las actualizaciones oficiales pueden alterar deliberadamente los protocolos de comunicación USB, rompiendo la compatibilidad con este software para forzar el uso de sistemas operativos propietarios.
+        Las actualizaciones oficiales pueden alterar deliberadamente los protocolos de comunicación USB, rompiendo la compatibilidad con este software, para forzarte a utilizar su suite oficial, lanzada exclusivamente en sistemas operativos propietarios.
         </p>
         """,
     },
     "de": {
-        "app_title": "OpenAquaero - Systemsteuerung",
+        "app_title": "AquaControl - Systemsteuerung",
         "profiles": "Thermische Profile",
         "save_btn": "Speichern",
         "placeholder": "Z.B. 'Gaming' oder 'Silent'",
@@ -660,7 +672,7 @@ TRANSLATIONS = {
         "p_fixed": "Leistung:",
         "gamma": "Kurve:",
         "tray_show": "Panel anzeigen",
-        "tray_msg": "OpenAquaero läuft im Hintergrund.",
+        "tray_msg": "AquaControl läuft im Hintergrund.",
         "info_btn": "ℹ Info",
         "err_sensor": "--",
         "mod_fixed_lbl": "Fest",
@@ -783,16 +795,15 @@ TRANSLATIONS = {
         "alarm_temp_msg": "Kanal {ch}: Kritische Temperatur ({temp:.1f} °C)",
         "alarm_power_msg": "Kanal {ch}: Leistungseinbruch ({p}%)",
         "info_dialog_html": """
-        <h3 style='color: #00e5ff; margin-bottom: 10px;'>OpenAquaero 3.0</h3>
+        <h3 style='color: #00e5ff; margin-bottom: 10px;'>AquaControl 3.1</h3>
         <p><b>Betreuer:</b> Raffaele Schiavone</p>
-        <p><b>Entwicklung:</b> Unterstützt durch Google Gemini</p>
         <p>Unabhängiges Projekt, veröffentlicht unter der GPLv3-Lizenz.</p>
         <hr style='border: 1px solid #313244; margin: 15px 0;'>
         <p style='color: #f38ba8; font-size: 14px;'><b>⚠️ Kompatibilitätswarnung</b></p>
         <p style='font-size: 13px; line-height: 1.5; color: #cdd6f4;'>
         Getestet und verifiziert auf Aquaero 6LT mit <b>Firmware 2104</b>.<br><br>
         <span style='color: #fab387; font-weight: bold;'>Es wird dringend davon abgeraten, die Firmware der Karte zu aktualisieren.</span><br>
-        Offizielle Updates können USB-Kommunikationsprotokolle absichtlich ändern und die Kompatibilität mit dieser Software brechen, um die Nutzung proprietärer Betriebssysteme zu erzwingen.
+        Offizielle Updates können USB-Kommunikationsprotokolle absichtlich ändern und die Kompatibilität mit dieser Software brechen, um die Nutzung ihrer offiziellen Suite zu erzwingen, die ausschließlich für proprietäre Betriebssysteme veröffentlicht wird.
         </p>
         """,
     }

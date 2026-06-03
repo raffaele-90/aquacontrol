@@ -1,3 +1,19 @@
+# AquaControl
+# Copyright (C) 2026 Raffaele Schiavone
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import sys
 import os
 import stat
@@ -22,7 +38,7 @@ from osd_widget import AquaeroOSD
 from ui_tabs import DashboardTabWidget, SecurityTabWidget, SettingsTabWidget, GuideTabWidget, OSDConfigTabWidget, HardwareTabWidget
 from ui_widgets import ChannelControlWidget, ProcessMappingDialog, MeltdownDialog
 
-IPC_SOCKET_PATH = "/tmp/openaquaero_osd.sock"
+IPC_SOCKET_PATH = "/tmp/aquacontrol_osd.sock"
 
 def get_dynamic_style(opacity_value):
     return f"""
@@ -163,7 +179,7 @@ class HardwareWorker(QThread):
         self.wait()
 
 
-class OpenAquaeroUI(QMainWindow):
+class AquaControlUI(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setAttribute(Qt.WA_TranslucentBackground)
@@ -175,7 +191,7 @@ class OpenAquaeroUI(QMainWindow):
         self.alarm_triggered = False
 
         self.autostart_dir = os.path.expanduser("~/.config/autostart")
-        self.desktop_file_path = os.path.join(self.autostart_dir, "openaquaero.desktop")
+        self.desktop_file_path = os.path.join(self.autostart_dir, "aquacontrol.desktop")
 
         self.ipc_server = IPCServer()
         self.ipc_server.toggle_osd_signal.connect(self.toggle_osd_from_hotkey)
@@ -234,7 +250,7 @@ class OpenAquaeroUI(QMainWindow):
 
     def setup_tray_icon(self):
         self.tray_icon = QSystemTrayIcon(self)
-        self.tray_icon.setIcon(QIcon.fromTheme("openaquaero", self.style().standardIcon(QStyle.SP_ComputerIcon)))
+        self.tray_icon.setIcon(QIcon.fromTheme("aquacontrol", self.style().standardIcon(QStyle.SP_ComputerIcon)))
         self.tray_menu = QMenu()
 
         self.action_toggle_osd = QAction(T("tray_toggle_osd"), self)
@@ -686,9 +702,9 @@ class OpenAquaeroUI(QMainWindow):
         save_config(global_config)
         if enabled:
             os.makedirs(self.autostart_dir, exist_ok=True)
-            exec_cmd = "/usr/bin/openaquaero --minimized" if minimized else "/usr/bin/openaquaero"
+            exec_cmd = "/usr/bin/aquacontrol --minimized" if minimized else "/usr/bin/aquacontrol"
             with open(self.desktop_file_path, "w") as f:
-                f.write(f"[Desktop Entry]\nType=Application\nExec={exec_cmd}\nHidden=false\nNoDisplay=false\nX-GNOME-Autostart-enabled=true\nName=OpenAquaero\nComment=Suite di controllo per Aquaero 6 LT\nCategories=System;HardwareSettings;\n")
+                f.write(f"[Desktop Entry]\nType=Application\nExec={exec_cmd}\nHidden=false\nNoDisplay=false\nX-GNOME-Autostart-enabled=true\nName=AquaControl\nComment=Suite di controllo per Aquaero 6 LT\nCategories=System;HardwareSettings;\n")
             os.chmod(self.desktop_file_path, os.stat(self.desktop_file_path).st_mode | stat.S_IEXEC)
         elif os.path.exists(self.desktop_file_path):
             os.remove(self.desktop_file_path)
@@ -724,7 +740,7 @@ class OpenAquaeroUI(QMainWindow):
             self.combo_profiles.setCurrentIndex(index)
             self.updating_combo = False
             self.load_selected_profile()
-            self.tray_icon.showMessage("OpenAquaero", T("tray_prof_activated").format(p=p_name), QSystemTrayIcon.Information, 1500)
+            self.tray_icon.showMessage("AquaControl", T("tray_prof_activated").format(p=p_name), QSystemTrayIcon.Information, 1500)
         else: self.updating_combo = False
 
     def check_running_processes(self):
@@ -795,15 +811,15 @@ class OpenAquaeroUI(QMainWindow):
 
         event.ignore()
         self.hide()
-        self.tray_icon.showMessage("OpenAquaero", T("tray_msg"), QSystemTrayIcon.Information, 2000)
+        self.tray_icon.showMessage("AquaControl", T("tray_msg"), QSystemTrayIcon.Information, 2000)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
 
     # --- FIX ICONA E WAYLAND ---
-    app.setWindowIcon(QIcon("openaquaero.png"))
-    app.setDesktopFileName("openaquaero")
+    app.setWindowIcon(QIcon("aquacontrol.png"))
+    app.setDesktopFileName("aquacontrol")
 
     # --- MODIFICA QUI ---
     # Recuperiamo il valore dell'opacità salvato nel file config.
@@ -812,8 +828,8 @@ if __name__ == "__main__":
     app.setStyleSheet(get_dynamic_style(initial_opacity))
     # ---------------------
 
-    win = OpenAquaeroUI()
-    win.setWindowIcon(QIcon("openaquaero.png"))
+    win = AquaControlUI()
+    win.setWindowIcon(QIcon("aquacontrol.png"))
 
     if "--minimized" not in sys.argv:
         win.show()

@@ -1,3 +1,19 @@
+# AquaControl
+# Copyright (C) 2026 Raffaele Schiavone
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel,
                                QProgressBar, QFrame, QLayout, QSizePolicy)
 from PySide6.QtCore import Qt, Signal, QTimer
@@ -40,7 +56,7 @@ class AquaeroOSD(QWidget):
 
         self.header_layout = QHBoxLayout()
         self.icon_lbl = QLabel("📊")
-        self.title_lbl = QLabel("OPENAQUAERO OSD")
+        self.title_lbl = QLabel("AQUACONTROL OSD")
         self.title_lbl.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.header_layout.addWidget(self.icon_lbl)
         self.header_layout.addWidget(self.title_lbl)

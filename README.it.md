@@ -1,40 +1,62 @@
-# 💧 OpenAquaero 3.0
+# 💧 AquaControl 3.1
 
-OpenAquaero è un software open-source, nativo e leggero per Linux, progettato specificamente per la gestione della scheda **Aquacomputer Aquaero 6 LT**. Offre un'interfaccia moderna e focalizzata per il controllo degli impianti a liquido custom direttamente dal tuo desktop Linux, senza dover dipendere da macchine virtuali o software proprietario.
+### Architettura e scopo del progetto
 
-Il programma opera in modalità **override in tempo reale**: comunica costantemente con la scheda via USB per regolarne il comportamento istante per istante, senza andare a scrivere o usurare la memoria ROM interna del dispositivo. Questo garantisce un controllo flessibile, sicuro e perfettamente integrato con il sistema operativo.
+AquaControl è una suite di controllo nativa per Linux, scritta specificamente per l'ecosistema Aquacomputer, programmata per la logica dell'Aquaero 6 LT. Aquacontrol è un programma che mira ad offrire le stesse funzionalità della suite ufficiale per la gestione di impianti a liquido custom, alternativa linux al famoso CoolerControl.
+CoolerControl è software eccezionale in grado di gestire innumerevoli periferiche ma, proprio per questo motivo, fallisce nell'obiettivo della specificità offerta da questo software e dai suoi controlli avanzati.
 
-## 🚀 Funzionalità di OpenAquaero 3.0
+Il software si appoggia al driver ufficiale del kernel Linux (aquacomputer_d5next di Aleksa Savic) per la lettura dei sensori esposti in /sys/class/hwmon. Sopra queste letture, AquaControl introduce il suo motore di calcolo indipendente per la scrittura di valori da 0 a 255 in tempo reale.
 
-OpenAquaero introduce una gestione avanzata e intuitiva dell'impianto, pensata per tutti gli utenti, offrendo anche una guida alle funzioni avanzate direttamente integrata all'interno del software.
+### Reverse Engineering del Protocollo USB
 
-- **Controllo Hardware Diretto (PWM/DC):** Il software dialoga direttamente con l'hardware tramite la porta USB. Permette di cambiare in tempo reale il tipo di segnale inviato a ogni singolo canale (PWM o DC). Questa funzione è fondamentale per gestire correttamente pompe o vecchie ventole a 3 pin sprovviste di controllo PWM, regolandone direttamente la tensione erogata.
-- **Mantenimento della Temperatura (Algoritmo PID):** Invece di configurare curve rigide basate sui punti del grafico, potresti definire una temperatura obiettivo per il tuo liquido (ad esempio 40°C). Il software utilizzerà un sistema di calcolo intelligente che adatta costantemente la velocità di ventole e pompe in base al carico istantaneo del PC, impedendo al liquido di superare la soglia stabilita. Include 3 comportamenti preimpostati (*Lento, Normale, Veloce*) e una modalità manuale.
-- **Sensori Virtuali (Delta T):** Questa funzione permette di creare un sensore intelligente basato sulla differenza di temperatura tra due punti dell'impianto. L'utilizzo ideale consiste nel sottrarre la temperatura di un sensore che rileva la temperatura ambientale a quella del liquido refrigerante. In questo modo si ottiene un valore di dissipazione costante in ogni stagione dell'anno: l'impianto eviterà di far girare le ventole al 100% in estate per inseguire temperature fisicamente impossibili, garantendo la stessa silenziosità acustica sia a gennaio che ad agosto.
-- **Limiti Fisici e Spunto di Avvio (Start Boost):** Molte pompe e ventole non riescono a girare se ricevono una percentuale di alimentazione troppo bassa, rischiando lo stallo meccanico. Con questa funzione puoi impostare una potenza minima sotto la quale il canale si spegne completamente. Inoltre, attivando l'*Avvio rapido (Start boost)*, il software darà una spinta iniziale al 100% per una frazione di secondo ogni volta che una ventola ferma deve mettersi in moto, vincendo l'inerzia iniziale delle pale.
-- **Overlay su Schermo (OSD) e Filosofia Anti-Bloatware:** Un pannello informativo fluttuante, trasparente e personalizzabile che mostra lo stato di ventole e temperature sul desktop in tempo reale. **Nota bene:** per via delle rigide regole di sicurezza dei moderni server grafici (come Wayland), l'OSD non è progettato per sovrapporsi alle schermate dei giochi in modalità fullscreen. Questo software non nasce per sostituire strumenti specifici da gioco come *MangoHud* (che rimane la scelta ideale per monitorare fps e sensori in-game), ma per tenere sotto controllo l'impianto durante sessioni di stress-test, benchmarking o durante il normale lavoro quotidiano sul desktop. OpenAquaero sposa la filosofia open-source del "fa' una sola cosa e falla bene", quindi non integra funzioni note di altri programmi che esulano dallo scopo del progetto.
-- **Cambio Profilo Automatico:** OpenAquaero rileva i programmi in esecuzione sul computer. È possibile associare profili ad applicazioni specifiche, facendo in modo che il sistema possa eventualmente caricare il profilo più aggressivo all'avvio di un determinato gioco o software di rendering, per poi ripristinare il profilo precedente in automatico non appena il programma viene chiuso.
+Poiché il modulo del kernel non permette la modifica della tipologia di erogazione di corrente sulle quattro uscite 12v della scheda, AquaControl integra un modulo di comunicazione diretta tramite python-hidapi. Attraverso il reverse engineering del protocollo USB, il software bypassa il kernel per iniettare payload mirati (Feature Reports) in tempo reale, permettendo di commutare i canali da 12V da modalità PWM a tensione DC continua (Power Controlled). Il software comunica con la scheda in modalità ovveride in tempo reale, per scelta dell'autore.
 
-## ⚠️ AVVISO CRITICO: NON AGGIORNARE IL FIRMWARE
+## 🚀 Funzionalità di AquaControl 3.1
 
-Il corretto funzionamento del software è stato verificato e testato su schede **Aquaero 6LT dotate di Firmware 2104**. Non viene garantita la compatibilità delle funzioni avanzate di comunicazione USB con versioni di firmware differenti.
+- **Interfaccia grafica e supporto multilingua**: L'interfaccia grafica è ispirata a quella di altri software che ritengo ben progettati con una ragionata organizzazione delle funzioni, concepita per essere "user friendly". Per rendere il software accessibile a chiunque, è stato tradotto in italiano, inglese, tedesco, spagnolo e francese e integra all'interno del programma stesso un manuale (anch'esso tradotto) per descrivere l'uso delle funzioni avanzate del programma.
 
-**SI SCONSIGLIA ASSOLUTAMENTE DI AGGIORNARE IL FIRMWARE DELLA SCHEDA.**
+- **Controllo Hardware PWM/DC:** Come spiegato sopra, switch a caldo baypassando le limitazioni del kernel.
 
-Spesso i produttori di hardware rilasciano strumenti di gestione scritti esclusivamente per Microsoft Windows, ignorando l'esistenza di piattaforme libere e costringendo gli utenti a subire sistemi operativi commerciali che tracciano e monetizzano i dati personali. Quando programmatori indipendenti dedicano mesi di lavoro gratuito al reverse engineering per restituire agli utenti il diritto di utilizzare l'hardware acquistato su sistemi liberi come Linux, le aziende rispondono rilasciando finti "aggiornamenti di sicurezza".
+- **Isteresi**: Calcola un valor medio di temperatura sulla base dei valori misurati in un determinato arco di tempo (personalizzabile) evitando la continua accelerazione/decelerazione delle ventole a causa di minime variazioni di temperatura.
 
-Questi aggiornamenti hanno spesso il solo scopo di modificare arbitrariamente i codici interni e i protocolli di comunicazione della scheda, rompendo intenzionalmente la compatibilità con i software alternativi della community. Se hai speso oltre 150 euro per un controller hardware premium, hai il sacrosanto diritto di usarlo sul sistema operativo che preferisci. Per evitare che la tua scheda si trasformi in un costoso fermacarte su Linux, ti invitiamo a non applicare gli aggiornamenti firmware ufficiali. Se il produttore desidera contrastare questi progetti, è libero di rilasciare una versione ufficiale e nativa della propria suite per Linux; fino ad allora, la community continuerà a difendere la libertà dell'hardware.
+- **Avvio Rapido (Start Boost):** A causa dell'inerzia meccanica delle ventole, è necessaria una maggiore potenza per avviare una ventola, rispetto alla potenza necessaria per mantenerla in rotazione. La funzione "avvio rapido" permette di applicare una potenza iniziale massima del 100% per una frazione di secondo per vincere lo stallo meccanico, per poi applicare un valore di potenza minimo che permetta alle ventole di continuare a girare, in base alla impostazioni scelte dall'utente. 
+
+- **Mantenimento della Temperatura (Algoritmo PID):** Mantenimento di una temperatura target costante su un sensore a scelta dell'utente.
+Include 3 comportamenti preimpostati (*Lento, Normale, Veloce*) e una modalità manuale.
+
+- **Sensori Virtuali (Delta T):** Possibilità di creare un sensore virtuale calcolato sulla differenza tra due sensori. Lo scopo primario di questa funzione è di poterla utilizzare con un sensore di rilevamento di temperatura ambientale accoppiato ad un sensore per il rilevamento delle temperatura del liquido. In questo modo si può creare una curva che regola il sistema in base ad un Delta T costante, slegando il controllo dei profili dell'impianto alla temperatura assoluta del liquido, che può variare in base alle stagioni dell'anno.
+
+- **Funzioni di sicurezza e allarmi:** Il software monitora costantemente i valori di RPM, potenza e voltaggio delle quattro uscite 12v di Aquaero, oltre a monitorare i sensori delle temperature. È possibile configurare delle soglie critiche, in cui il programma potrà intervenire in automatico mostrando un allarme (visivo e sonoro) spegnendo forzatamente il pc con permessi di root e/o lanciando un comando personalizzato a scelta dell'utente.
+
+- **Overlay su Schermo (OSD):** Un pannello personalizzabile che è possibile spostare ovunque sul desktop. 
+
+**Nota bene:** Per via delle regole di sicurezza di Wayland, l'OSD non è stato progettato per sovrapporsi alle schermate dei giochi in modalità fullscreen. L'OSD non mira a sostituire o sovrapporsi a strumenti dedicati come Mangohud, ma nasce come strumento di monitoring del sistema, pensato per mostrare i sensori di sistema e di aquaero, durante le normali sessioni di lavoro sul desktop, durante l'uso di benchmark o stress test in finestra. Non ho integrato e non intendo integrare funzioni che fuoriescano dallo scopo del progetto.
+
+- **Cambio Profilo Automatico:** AquaControl permette di creare profili personalizzati e di associarli a specifici programmi (come li si avvierebbe tramite terminale); è possibile quindi associare un profilo più aggressivo all'apertura di un videogame o di un software di rendering, con ripristino automatico del profilo precedente alla chiusura del programma.
+
+
+## ⚠️ AVVISO IMPORTANTE: SI SCONSIGLIA DI AGGIORNARE IL FIRMWARE
+
+Il corretto funzionamento del software è stato verificato e testato su schede **Aquaero 6LT dotate di Firmware 2104**. Non viene garantita la compatibilità dello switch PWM/DC su altre versioni.
+
+Spesso i produttori hardware, che non rendono disponibili i loro software su Linux, rilasciano "fix di sicurezza" al solo scopo di cambiare i protocolli di comunicazione usb e rompere la compatibilità di software opensource come questo.
 
 ## 🔮 Sviluppi Futuri
 
-Il software è pienamente maturo per il controllo quotidiano dei sistemi di raffreddamento più complessi. Nelle prossime versioni pianifichiamo di integrare:
-* **Sensori di Flusso:** Supporto alla lettura dei dati di portata del liquido (litri/ora) per monitorare lo stato di salute della pompa e l'efficienza dei waterblock.
-* **Supporto Farbwerk 360:** Studio per la creazione di un modulo software integrato o di una dipendenza esterna leggera in grado di interfacciarsi con i controller RGB dedicati, estendendo il controllo dell'illuminazione del PC direttamente da Linux in armonia con l'ecosistema open-source (come OpenRGB).
+Il software è sufficientemente maturo per il controllo delle quattro uscite 12v di Aquaero 6 LT. Nelle prossime versioni pianifico di integrare:
+
+* **Sensori di Flusso:** Supporto alla lettura dei dati relativi ai sensori di flusso, che verranno convertiti nel software in valori di portata del liquido (litri/ora) con parametri di conversione impostabili dall'utente, in base al sensore scelto. Ovviamente aggiungerò anche una voce per gestire il sistema di emergenza del programma in base alla lettura del sensore di flusso.
+
+* **Supporto D5 Next**
+
+* **Possibile per altro hardware Aquacomputer (Beta):** 
+ Il driver aquacomputer_d5next riconosce correttamente: Aquaero 5, Aquaero 6, Octo, Quadro, Poweradjust 3, D5 Next, Aquastream XT, Aquastream Ultimate, High Flow Next, High Flow USB, MPS Flow, Leakshield, Farbwerk e Farbwerk 360. Purtroppo non possiedo nessuna di queste periferiche, ma è possibile espandere la compatibilità del software mettendo le funzionalità come "Beta" e cercando Beta tester della community che possiedono fisicamente questi dispositivi e possono provare il programma.
+
 
 ## 🛠 Installazione (Arch Linux)
 
 1. Clona questo repository sul tuo computer.
-2. Apri il terminale nella cartella del progetto ed esegui il comando:
+2. Apri il terminale nella cartella dei sorgenti ed esegui il comando:
    
    `makepkg -si`
    
@@ -45,4 +67,10 @@ Il sistema compilerà il pacchetto, configurerà i permessi hardware della porta
    `sudo pacman -S python-pynvml`
    
 📜 Licenza
-Rilasciato sotto licenza internazionale libera GNU GPLv3. Questo è un progetto indipendente sviluppato dalla community degli utenti Linux e non è in alcun modo affiliato, supportato o approvato da Aquacomputer.
+Rilasciato sotto licenza internazionale libera GNU GPLv3. Questo è un progetto indipendente è sviluppato da un utente dalla community Linux e non è in alcun modo affiliato, supportato o approvato da Aquacomputer.
+
+## 👤 Autore / Maintainer
+
+Sviluppato e mantenuto da **Raffaele Schiavone** ([@raffaele-90](https://github.com/raffaele-90)).
+
+*Scrivo software libero perché credo nel diritto di poter usare l'hardware che acquisto sul sistema operativo che preferisco, senza dover installare Microsoft Windows.*

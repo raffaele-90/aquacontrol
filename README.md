@@ -1,50 +1,75 @@
-*🇮🇹 [Leggi la documentazione in Italiano](README.it.md)*
+# 💧 AquaControl 3.1
 
-# 💧 OpenAquaero 3.0
+### Architecture and project scope
 
-OpenAquaero is an open-source, native, and lightweight software for Linux, specifically designed to manage the **Aquacomputer Aquaero 6 LT** board. It offers a modern and focused interface for controlling custom liquid cooling loops directly from your Linux desktop, without having to rely on virtual machines or proprietary software.
+AquaControl is a native control suite for Linux, written specifically for the Aquacomputer ecosystem, programmed for the logic of the Aquaero 6 LT. Aquacontrol is a program that aims to offer the same functionalities as the official suite for managing custom liquid cooling loops, a linux alternative to the famous CoolerControl.
+CoolerControl is exceptional software capable of managing countless peripherals but, precisely for this reason, fails in the goal of specificity offered by this software and its advanced controls.
 
-The program operates in **real-time override** mode: it constantly communicates with the board via USB to regulate its behavior moment by moment, without writing to or wearing out the device's internal ROM memory. This ensures flexible, secure control that is perfectly integrated with the operating system.
+The software relies on the official Linux kernel driver (aquacomputer_d5next by Aleksa Savic) to read the sensors exposed in /sys/class/hwmon. On top of these readings, AquaControl introduces its independent calculation engine for writing values from 0 to 255 in real time.
 
-## 🚀 OpenAquaero 3.0 Features
+### Reverse Engineering of the USB Protocol
 
-OpenAquaero introduces advanced and intuitive loop management, designed for all users, offering a guide to advanced features directly integrated within the software.
+Since the kernel module does not allow modifying the type of current delivery on the four 12v outputs of the board, AquaControl integrates a direct communication module via python-hidapi. Through reverse engineering of the USB protocol, the software bypasses the kernel to inject targeted payloads (Feature Reports) in real time, allowing the 12V channels to be switched from PWM mode to continuous DC voltage (Power Controlled). The software communicates with the board in override mode in real time, by the author's choice.
 
-- **Direct Hardware Control (PWM/DC):** The software communicates directly with the hardware via the USB port. It allows you to change the type of signal sent to each individual channel (PWM or DC) in real time. This feature is crucial for properly managing pumps or older 3-pin fans that lack PWM control, by directly regulating their voltage.
-- **Temperature Maintenance (PID Algorithm):** Instead of configuring rigid curves based on graph points, you can define a target temperature for your coolant (e.g., 40°C). The software uses a smart calculation system that constantly adapts the speed of fans and pumps based on the PC's instantaneous load, preventing the coolant from exceeding the set threshold. It includes 3 preset behaviors (*Slow, Normal, Fast*) and a manual mode.
-- **Virtual Sensors (Delta T):** This feature allows you to create a smart sensor based on the temperature difference between two points in the loop. The ideal use case consists of subtracting the temperature from an ambient room sensor from the coolant temperature. This provides a constant dissipation value across every season: the system will avoid running fans at 100% in the summer to chase physically impossible temperatures, ensuring the same acoustic silence in January as in August.
-- **Physical Limits and Start Boost:** Many pumps and fans cannot spin if they receive too low a power percentage, risking a mechanical stall. With this feature, you can set a minimum power under which the channel turns off completely. Furthermore, by activating *Start boost*, the software will provide an initial 100% kick for a fraction of a second whenever a stationary fan needs to start, overcoming the initial inertia of the blades.
-- **On-Screen Display (OSD) and Anti-Bloatware Philosophy:** A floating, transparent, and customizable info panel that shows the status of fans and temperatures on the desktop in real time. **Please note:** due to the strict security rules of modern display servers (like Wayland), the OSD is not designed to overlay games in fullscreen mode. This software is not meant to replace specific gaming tools like *MangoHud* (which remains the ideal choice for monitoring fps and in-game sensors), but rather to keep an eye on the loop during stress-test sessions, benchmarking, or as a simple daily desktop monitor. OpenAquaero embraces the open-source philosophy of "do one thing and do it well", so it doesn't integrate features known from other programs that fall outside the project's scope.
-- **Automatic Profile Switching:** OpenAquaero detects the programs running on your computer. You can link profiles to specific applications, allowing the system to automatically load your most aggressive cooling profile when launching a specific game or rendering software, and then automatically restore the previous profile as soon as the program is closed.
+## 🚀 AquaControl 3.1 Features
 
-## ⚠️ CRITICAL WARNING: DO NOT UPDATE THE FIRMWARE
+- **Graphical interface and multilingual support**: The graphical interface is inspired by that of other software that I consider well designed with a reasoned organization of functions, conceived to be "user friendly". To make the software accessible to anyone, it has been translated into Italian, English, German, Spanish and French and integrates within the program itself a manual (also translated) to describe the use of the advanced functions of the program.
 
-The proper functioning of this software has been verified and tested on **Aquaero 6LT boards equipped with Firmware 2104**. Compatibility of the advanced USB communication features is not guaranteed with different firmware versions.
+- **PWM/DC Hardware Control:** As explained above, hot switch bypassing kernel limitations.
 
-**IT IS STRONGLY ADVISED NOT TO UPDATE THE BOARD'S FIRMWARE.**
+- **Hysteresis**: Calculates an average temperature value based on the values measured in a certain period of time (customizable) avoiding the continuous acceleration/deceleration of the fans due to minimal temperature variations.
 
-Hardware manufacturers often release management tools exclusively for Microsoft Windows, ignoring the existence of free platforms and forcing users to endure commercial operating systems that track and monetize personal data. When independent developers dedicate months of free work to reverse engineering to give users back the right to use the hardware they purchased on free systems like Linux, companies respond by releasing fake "security updates".
+- **Quick Start (Start Boost):** Due to the mechanical inertia of the fans, more power is needed to start a fan, compared to the power needed to keep it rotating. The "quick start" function allows you to apply a maximum initial power of 100% for a fraction of a second to overcome mechanical stall, and then apply a minimum power value that allows the fans to keep spinning, based on the settings chosen by the user.
 
-These updates often have the sole purpose of arbitrarily modifying the board's internal codes and communication protocols, intentionally breaking compatibility with alternative community software. If you spent over €150 on a premium hardware controller, you have the absolute right to use it on the operating system of your choice. To prevent your board from turning into an expensive paperweight on Linux, we urge you not to apply official firmware updates. If the manufacturer wishes to counter these projects, they are free to release an official, native version of their suite for Linux; until then, the community will continue to defend hardware freedom.
+- **Temperature Maintenance (PID Algorithm):** Maintenance of a constant target temperature on a sensor of the user's choice.
+Includes 3 preset behaviors (*Slow, Normal, Fast*) and a manual mode.
+
+- **Virtual Sensors (Delta T):** Possibility to create a virtual sensor calculated on the difference between two sensors. The primary purpose of this function is to be able to use it with an ambient temperature detection sensor coupled with a sensor for detecting liquid temperatures. In this way a curve can be created that regulates the system based on a constant Delta T, untying the control of the system's profiles from the absolute temperature of the liquid, which can vary based on the seasons of the year.
+
+- **Security functions and alarms:** The software constantly monitors the RPM, power and voltage values of the four 12v Aquaero outputs, as well as monitoring the temperature sensors. It is possible to configure critical thresholds, in which the program can intervene automatically showing an alarm (visual and auditory) by forcibly shutting down the pc with root permissions and/or launching a custom command of the user's choice.
+
+- **On-Screen Overlay (OSD):** A customizable panel that can be moved anywhere on the desktop. 
+
+**Please note:** Due to Wayland's security rules, the OSD was not designed to overlay game screens in fullscreen mode. The OSD does not aim to replace or overlap dedicated tools like Mangohud, but was born as a system monitoring tool, designed to show system and aquaero sensors, during normal desktop work sessions, during the use of benchmarks or windowed stress tests. I have not integrated and do not intend to integrate functions that fall outside the scope of the project.
+
+- **Automatic Profile Switch:** AquaControl allows you to create custom profiles and associate them with specific programs (as you would start them via terminal); it is therefore possible to associate a more aggressive profile when opening a videogame or rendering software, with automatic restoration of the previous profile upon closing the program.
+
+
+## ⚠️ IMPORTANT WARNING: UPDATING THE FIRMWARE IS NOT RECOMMENDED
+
+The correct functioning of the software has been verified and tested on **Aquaero 6LT boards equipped with Firmware 2104**. Compatibility of the PWM/DC switch on other versions is not guaranteed.
+
+Often hardware manufacturers, who do not make their software available on Linux, release "security fixes" for the sole purpose of changing usb communication protocols and breaking the compatibility of opensource software like this.
 
 ## 🔮 Future Developments
 
-The software is fully mature for the daily control of even the most complex cooling systems. In upcoming releases, we plan to integrate:
-* **Flow Sensors:** Support for reading liquid flow rate data (liters/hour) to monitor pump health and waterblock efficiency.
-* **Farbwerk 360 Support:** Researching the creation of an integrated software module or a lightweight external dependency capable of interfacing with dedicated RGB controllers, extending PC lighting control directly from Linux in harmony with the open-source ecosystem (like OpenRGB).
+The software is mature enough for the control of the four 12v outputs of Aquaero 6 LT. In upcoming versions I plan to integrate:
+
+* **Flow Sensors:** Support for reading data related to flow sensors, which will be converted in the software into liquid flow values (liters/hour) with conversion parameters that can be set by the user, based on the chosen sensor. Obviously I will also add an option to manage the program's emergency system based on the flow sensor reading.
+
+* **D5 Next Support**
+
+* **Possible for other Aquacomputer hardware (Beta):** The aquacomputer_d5next driver correctly recognizes: Aquaero 5, Aquaero 6, Octo, Quadro, Poweradjust 3, D5 Next, Aquastream XT, Aquastream Ultimate, High Flow Next, High Flow USB, MPS Flow, Leakshield, Farbwerk and Farbwerk 360. Unfortunately I do not own any of these peripherals, but it is possible to expand the compatibility of the software by putting the features as "Beta" and looking for Beta testers from the community who physically own these devices and can test the program.
+
 
 ## 🛠 Installation (Arch Linux)
 
-1. Clone this repository to your computer.
-2. Open the terminal in the project folder and run the command:
+1. Clone this repository on your computer.
+2. Open the terminal in the sources folder and run the command:
    
    `makepkg -si`
    
-The system will build the package, configure the necessary USB hardware permissions (udev), and install the application, automatically resolving the required dependencies (such as python-hidapi).
+The system will compile the package, configure the hardware permissions of the USB port (udev) and install the application automatically resolving the necessary dependencies (like python-hidapi).
 
-3. If you use an NVIDIA graphics card and want to display its load and temperature data, install the additional package from AUR/pacman: 
+3. If you use an NVIDIA video card and wish to display its load and temperature data, install the additional package from AUR/pacman: 
 
    `sudo pacman -S python-pynvml`
    
-## 📜 License
-Released under the free international **GNU GPLv3** license. This is an independent project developed by the Linux user community and is in no way affiliated with, supported by, or endorsed by Aquacomputer.
+📜 License
+Released under the free international GNU GPLv3 license. This is an independent project developed by a user from the Linux community and is in no way affiliated with, supported or approved by Aquacomputer.
+
+## 👤 Author / Maintainer
+
+Developed and maintained by **Raffaele Schiavone** ([@raffaele-90](https://github.com/raffaele-90)).
+
+*I write free software because I believe in the right to be able to use the hardware I purchase on the operating system I prefer, without having to install Microsoft Windows.*

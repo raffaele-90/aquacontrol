@@ -1,8 +1,24 @@
+# AquaControl
+# Copyright (C) 2026 Raffaele Schiavone
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import os
 import json
 
-CONFIG_DIR = os.path.expanduser("~/.config/openaquaero")
-CONFIG_FILE = os.path.join(CONFIG_DIR, "openaquaero.json")
+CONFIG_DIR = os.path.expanduser("~/.config/aquacontrol")
+CONFIG_FILE = os.path.join(CONFIG_DIR, "aquacontrol.json")
 
 def load_config():
     """Deserializes JSON settings file. Provides default dictionary if missing."""
