@@ -569,7 +569,7 @@ class OSDConfigTabWidget(QWidget):
         opacity_layout = QHBoxLayout()
         from PySide6.QtWidgets import QSlider
         self.slider_opacity = QSlider(Qt.Horizontal)
-        self.slider_opacity.setRange(0, 255)
+        self.slider_opacity.setRange(0, 100)
         self.slider_opacity.setFixedWidth(180)
         self.lbl_opacity_val = QLabel()
         opacity_layout.addWidget(self.slider_opacity)
@@ -681,13 +681,14 @@ class OSDConfigTabWidget(QWidget):
 
     def update_aesthetic(self):
         self.set_dirty()
-        opacity = self.slider_opacity.value()
+        opacity_percent = self.slider_opacity.value()
+        real_opacity = int(opacity_percent * 2.55) # Conversione per il back-end
         max_rows = self.spin_max_rows.value()
-        self.lbl_opacity_val.setText(str(opacity))
-        self.main_window.osd_window.set_customization(opacity=opacity, max_rows=max_rows)
+        self.lbl_opacity_val.setText(f"{opacity_percent} %")
+        self.main_window.osd_window.set_customization(opacity=real_opacity, max_rows=max_rows)
 
         conf = global_config.get("osd_config", {})
-        conf["opacity"] = opacity
+        conf["opacity"] = real_opacity
         conf["max_rows"] = max_rows
         global_config["osd_config"] = conf
 
@@ -750,8 +751,9 @@ class OSDConfigTabWidget(QWidget):
             widgets["txt"].blockSignals(True); widgets["txt"].setText(saved.get("custom_name", "")); widgets["txt"].blockSignals(False)
 
         opacity = conf.get("opacity", 220)
-        self.slider_opacity.blockSignals(True); self.slider_opacity.setValue(opacity); self.slider_opacity.blockSignals(False)
-        self.lbl_opacity_val.setText(str(opacity))
+        opacity_percent = int(opacity / 2.55)
+        self.slider_opacity.blockSignals(True); self.slider_opacity.setValue(opacity_percent); self.slider_opacity.blockSignals(False)
+        self.lbl_opacity_val.setText(f"{opacity_percent} %")
 
         max_rows = conf.get("max_rows", 8)
         self.spin_max_rows.blockSignals(True); self.spin_max_rows.setValue(max_rows); self.spin_max_rows.blockSignals(False)
@@ -811,18 +813,29 @@ class SettingsTabWidget(QWidget):
         lbl_opac.setStyleSheet("color: #00e5ff; font-weight: bold;")
 
         self.slider_window_opac = QSlider(Qt.Horizontal)
-        self.slider_window_opac.setRange(60, 255) # Minimo 60 (circa 25%) per non sparire
+        self.slider_window_opac.setRange(15, 100) # Minimo 15% per non far sparire la finestra
         saved_opac = global_config.get("window_opacity", 180)
-        self.slider_window_opac.setValue(saved_opac)
+        saved_opac_percent = int(saved_opac / 2.55) # Converte in percentuale
+        self.slider_window_opac.setValue(saved_opac_percent)
+
+        self.lbl_window_opac_val = QLabel(f"{saved_opac_percent} %")
+        self.lbl_window_opac_val.setStyleSheet("color: #a6adc8; font-weight: bold;")
+
         self.slider_window_opac.valueChanged.connect(self.change_ui_opacity)
 
         opac_row.addWidget(lbl_opac)
         opac_row.addWidget(self.slider_window_opac)
+        opac_row.addWidget(self.lbl_window_opac_val)
         sys_layout.addLayout(opac_row)
 
         # Checkbox varie
+        self.chk_close_tray = QCheckBox(T("close_to_tray"))
+        self.chk_close_tray.setChecked(global_config.get("close_to_tray", True))
+        self.chk_close_tray.toggled.connect(self.toggle_close_tray)
+
         sys_layout.addWidget(self.main_window.chk_autostart)
         sys_layout.addWidget(self.main_window.chk_minimized)
+        sys_layout.addWidget(self.chk_close_tray)
 
         layout.addWidget(group_sys)
         layout.addStretch()
@@ -832,18 +845,22 @@ class SettingsTabWidget(QWidget):
         save_config(global_config)
 
     def change_ui_opacity(self, value):
-        # 1. Salva il valore nel file di configurazione
-        global_config["window_opacity"] = value
+        self.lbl_window_opac_val.setText(f"{value} %")
+        real_opacity = int(value * 2.55)
+
+        global_config["window_opacity"] = real_opacity
         save_config(global_config)
 
-        # 2. Chiama la funzione nel main.py per aggiornare lo stile "al volo"
-        # Usiamo main_window perché la classe SettingsTabWidget ha il riferimento
         from main import get_dynamic_style
-        self.main_window.setStyleSheet(get_dynamic_style(value))
+        self.main_window.setStyleSheet(get_dynamic_style(real_opacity))
+
+    def toggle_close_tray(self, checked):
+        global_config["close_to_tray"] = checked
+        save_config(global_config)
 
 
 class GuideTabWidget(QWidget):
-    """Manuale tecnico integrato per la configurazione avanzata del loop termico."""
+    """Manuale tecnico integrato per le funzioni avanzate."""
     def __init__(self, parent=None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
@@ -858,7 +875,6 @@ class GuideTabWidget(QWidget):
         content.setWordWrap(True)
         content.setTextFormat(Qt.RichText)
 
-        # Qui avviene la magia: carichiamo il testo dinamicamente dal nuovo file!
         content.setText(get_guide_text())
 
         content.setStyleSheet("""

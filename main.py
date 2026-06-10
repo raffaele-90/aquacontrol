@@ -809,9 +809,13 @@ class AquaControlUI(QMainWindow):
             event.accept()
             return
 
-        event.ignore()
-        self.hide()
-        self.tray_icon.showMessage("AquaControl", T("tray_msg"), QSystemTrayIcon.Information, 2000)
+        # Legge la preferenza (se non esiste nel JSON, assume True per sicurezza)
+        if global_config.get("close_to_tray", True):
+            event.ignore()
+            self.hide()
+        else:
+            # Se la spunta non è presente, la X chiude il programma
+            self.force_quit()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
