@@ -26,9 +26,9 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                                QHBoxLayout, QSystemTrayIcon, QMenu, QStyle,
                                QListWidget, QListWidgetItem, QStackedWidget,
                                QLabel, QPushButton, QComboBox, QLineEdit, QScrollArea,
-                               QGroupBox, QCheckBox, QMessageBox, QFrame)
+                               QGroupBox, QCheckBox, QMessageBox, QFrame, QDialog)
 from PySide6.QtCore import Qt, QThread, Signal, QTimer
-from PySide6.QtGui import QAction, QIcon, QFont, QColor
+from PySide6.QtGui import QAction, QIcon, QFont, QColor, QPixmap
 
 # --- Importazioni Modulari ---
 from config_manager import global_config, save_config, CONFIG_FILE
@@ -162,18 +162,25 @@ class HardwareWorker(QThread):
         self.pwm_commands = {}
 
     def run(self):
+        from config_manager import global_config
         while self.running:
-            # 1. Raccoglie la telemetria completa (inclusi voltaggi, storico e pwm_loads)
+            # 1. Raccoglie la telemetria completa
             data = self.engine.get_dashboard_telemetry()
 
-            # 2. Applica i comandi fisici alle ventole se il controllo è attivo
+            # 2. Applica i comandi fisici sfruttando la logica asincrona
             if self.active_control:
+                hw_config = global_config.get("hardware_channels", {})
                 for ch_id, pwm_val in self.pwm_commands.items():
-                    self.engine.set_fan_speed(ch_id, pwm_val)
+                    ch_conf = hw_config.get(str(ch_id), {})
+                    boost_en = ch_conf.get("boost_en", False)
+                    boost_time = ch_conf.get("boost_time", 1.0)
 
-            # 3. Spedisce l'intero pacchetto dati alla UI
+                    self.engine.apply_pwm(ch_id, pwm_val, boost_enabled=boost_en, boost_time=boost_time)
+
+            # 3. Spedisce i dati alla UI
             self.telemetry_ready.emit(data)
             time.sleep(1)
+
     def stop(self):
         self.running = False
         self.wait()
@@ -225,6 +232,81 @@ class AquaControlUI(QMainWindow):
         self.dirty_timer = QTimer(self)
         self.dirty_timer.timeout.connect(self.check_dirty_state)
         self.dirty_timer.start(500)
+        # Controllo diagnostico della sessione precedente
+        QTimer.singleShot(1500, self.check_previous_session_emergency)
+
+    def check_previous_session_emergency(self):
+        pending_path = os.path.expanduser("~/.config/aquacontrol/emergency_pending.json")
+        if os.path.exists(pending_path):
+            try:
+                with open(pending_path, "r") as f:
+                    data = json.load(f)
+
+                os.remove(pending_path)
+
+                dialog = QDialog(self)
+                dialog.setWindowTitle(T("alarm_critical_title"))
+                dialog.setStyleSheet(self.styleSheet())
+                dialog.resize(500, 260)
+
+                layout = QVBoxLayout(dialog)
+                layout.setContentsMargins(20, 20, 20, 20)
+                layout.setSpacing(15)
+
+                header_layout = QHBoxLayout()
+
+                # Sostituzione dell'emoji testuale con icona di sistema nativa e professionale
+                lbl_icon = QLabel()
+                pixmap = self.style().standardIcon(QStyle.SP_MessageBoxWarning).pixmap(48, 48)
+                lbl_icon.setPixmap(pixmap)
+                lbl_icon.setStyleSheet("background: transparent; border: none;")
+
+                # Tutte le stringhe sono ora pilotate dinamicamente da i18n
+                lbl_title = QLabel(
+                    f"<h3 style='color: #ff3333; margin: 0;'>{T('loop_emergency')}</h3>"
+                    f"<p style='color: #a6adc8; margin: 5px 0 0 0;'>{T('popup_fail_safe_msg')}</p>"
+                )
+                lbl_title.setTextFormat(Qt.RichText)
+                lbl_title.setStyleSheet("background: transparent; border: none;")
+
+                header_layout.addWidget(lbl_icon)
+                header_layout.addSpacing(15)
+                header_layout.addWidget(lbl_title)
+                header_layout.addStretch()
+                layout.addLayout(header_layout)
+
+                line = QFrame()
+                line.setFrameShape(QFrame.HLine)
+                line.setStyleSheet("border: 1px solid #313244; background-color: rgba(255,255,255,10);")
+                layout.addWidget(line)
+
+                reason_text = data.get("reason", "Unknown")
+                timestamp = data.get("timestamp", "--")
+
+                lbl_details = QLabel(
+                    f"<p style='font-size: 13px; color: #cdd6f4; line-height: 1.6; margin: 0;'>"
+                    f"<b>{T('popup_log_title')}</b><br>"
+                    f"• <b>{T('popup_date_time')}</b> {timestamp}<br>"
+                    f"• <b>{T('popup_alarm_cause')}</b> <span style='color: #f38ba8; font-weight: bold;'>{reason_text}</span>"
+                    f"</p>"
+                )
+                lbl_details.setTextFormat(Qt.RichText)
+                lbl_details.setWordWrap(True)
+                lbl_details.setStyleSheet("background: transparent; border: none;")
+                layout.addWidget(lbl_details)
+
+                btn_layout = QHBoxLayout()
+                btn_ok = QPushButton(T("alarm_close_verify"))
+                btn_ok.setFixedWidth(120)
+                btn_ok.clicked.connect(dialog.accept)
+                btn_layout.addStretch()
+                btn_layout.addWidget(btn_ok)
+                btn_layout.addStretch()
+                layout.addLayout(btn_layout)
+
+                dialog.exec()
+            except Exception as e:
+                print(f"Errore durante l'analisi del flag diagnostico: {e}")
 
     def init_settings_vars(self):
         self.chk_autostart = QCheckBox(T("autostart"))
@@ -499,40 +581,57 @@ class AquaControlUI(QMainWindow):
         alarm_triggered_this_tick = False
         alarm_messages = []
 
+        if not hasattr(self, 'alarm_trackers'):
+            self.alarm_trackers = {}
+
+        current_time = time.time()
+
         for ch in self.channels:
             ch_id_str = str(ch.channel_id)
             c_sec = channels_sec.get(ch_id_str, {})
 
-            # Ottieni la potenza fisica (0-255) che stiamo inviando in questo istante
+            allowed_delay = c_sec.get("delay_val", 3)
             current_pwm = pwm_commands.get(ch.channel_id, 0) if self.is_controlling else 0
             current_pwm_percent = int((current_pwm / 255.0) * 100)
 
-            # FIX: Se il software ha deliberatamente spento la ventola (0%), bypassiamo gli allarmi di blocco di questo canale
             if self.is_controlling and current_pwm_percent == 0:
+                self.alarm_trackers.pop(ch_id_str, None)
                 continue
+
+            channel_violations = []
 
             if c_sec.get("rpm_en"):
                 current_rpm = rpms.get(ch.channel_id, 0)
                 if current_rpm <= c_sec.get("rpm_val", 0):
-                    alarm_triggered_this_tick = True
-                    alarm_messages.append(T("alarm_rpm_msg").format(ch=ch_id_str, rpm=current_rpm))
+                    channel_violations.append(T("alarm_rpm_msg").format(ch=ch_id_str, rpm=current_rpm))
 
             if c_sec.get("temp_en"):
                 sensor_id = ch.combo_sensors.currentData()
                 current_temp = temps.get(sensor_id)
                 if current_temp is not None and current_temp >= c_sec.get("temp_val", 999):
-                    alarm_triggered_this_tick = True
-                    alarm_messages.append(T("alarm_temp_msg").format(ch=ch_id_str, temp=current_temp))
+                    channel_violations.append(T("alarm_temp_msg").format(ch=ch_id_str, temp=current_temp))
 
             if c_sec.get("power_en") and self.is_controlling:
                 if current_pwm_percent <= c_sec.get("power_val", 0):
+                    channel_violations.append(T("alarm_power_msg").format(ch=ch_id_str, p=current_pwm_percent))
+
+            # Valutazione del ritardo di sicurezza
+            if channel_violations:
+                if ch_id_str not in self.alarm_trackers:
+                    self.alarm_trackers[ch_id_str] = current_time
+
+                if current_time - self.alarm_trackers[ch_id_str] >= allowed_delay:
                     alarm_triggered_this_tick = True
-                    alarm_messages.append(T("alarm_power_msg").format(ch=ch_id_str, p=current_pwm_percent))
+                    alarm_messages.extend(channel_violations)
+            else:
+                self.alarm_trackers.pop(ch_id_str, None)
 
         if alarm_triggered_this_tick and not self.alarm_triggered:
             self.alarm_triggered = True
+
             if actions_sec.get("osd_en") and self.osd_window.isVisible():
                 self.osd_window.bg_widget.setStyleSheet("background-color: rgba(200, 0, 0, 235); border-radius: 12px; border: 3px solid #ffffff;")
+
             if actions_sec.get("sound_en"):
                 default_alarm = "/usr/share/sounds/freedesktop/stereo/suspend-error.oga"
                 fallback_alarm = "/usr/share/sounds/freedesktop/stereo/dialog-error.oga"
@@ -543,28 +642,24 @@ class AquaControlUI(QMainWindow):
             self.tray_icon.showMessage(T("loop_emergency"), " | ".join(alarm_messages), QSystemTrayIcon.Critical, 5000)
 
             if not hasattr(self, 'meltdown_dialog') or not self.meltdown_dialog.isVisible():
+                from ui_widgets import MeltdownDialog
                 self.meltdown_dialog = MeltdownDialog(alarm_messages, actions_sec, None)
                 self.meltdown_dialog.show()
 
-            # --- Esecuzione Logica di Emergenza ---
             def execute_emergency_sequence():
                 cmd_enabled = actions_sec.get("cmd_en")
                 cmd_text = actions_sec.get("cmd_val", "").strip()
                 shutdown_enabled = actions_sec.get("shutdown_en")
                 delay_seconds = actions_sec.get("delay_val", 0)
 
-                # Se l'utente ha impostato un comando personalizzato, lo lanciamo subito in background
                 if cmd_enabled and cmd_text:
                     try:
                         subprocess.Popen(cmd_text, shell=True)
                     except Exception as e:
                         print(f"Errore comando personalizzato: {e}")
 
-                # Se lo spegnimento è attivo, chiamiamo il motore passandogli anche il ritardo (delay_seconds)
                 if shutdown_enabled:
                     trigger_reason = alarm_messages[0] if alarm_messages else "Unknown"
-
-                    # NOTA: Ora passiamo 3 parametri. Il motore userà systemd per gestire il timer in modo sicuro
                     self.engine.trigger_emergency_shutdown(trigger_reason, 99.9, delay_seconds)
 
             emergency_thread = threading.Thread(target=execute_emergency_sequence)
@@ -665,12 +760,66 @@ class AquaControlUI(QMainWindow):
         QTimer.singleShot(50, self.restore_osd_position)
 
     def show_about_dialog(self):
-        msg = QMessageBox(self)
-        msg.setWindowTitle(T("info_btn"))
-        msg.setTextFormat(Qt.RichText)
-        # Richiama l'HTML tradotto direttamente da i18n
-        msg.setText(T("info_dialog_html"))
-        msg.exec()
+        dialog = QDialog(self)
+        dialog.setWindowTitle(T("info_btn"))
+        dialog.setStyleSheet(self.styleSheet())
+
+        layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
+
+        header_layout = QHBoxLayout()
+        lbl_icon = QLabel()
+
+        system_icon = "/usr/share/icons/hicolor/512x512/apps/aquacontrol.png"
+
+        # os.path è già importato in cima a main.py
+        local_icon = os.path.join(os.path.dirname(os.path.abspath(__file__)), "aquacontrol.png")
+
+        if os.path.exists(system_icon):
+            pixmap = QPixmap(system_icon)
+        elif os.path.exists(local_icon):
+            pixmap = QPixmap(local_icon)
+        else:
+            pixmap = QIcon.fromTheme("aquacontrol").pixmap(75, 75)
+
+        if not pixmap.isNull():
+            lbl_icon.setPixmap(pixmap.scaled(75, 75, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+
+        lbl_title = QLabel()
+        lbl_title.setTextFormat(Qt.RichText)
+        lbl_title.setText(T("info_dialog_header"))
+
+        header_layout.addWidget(lbl_icon)
+        header_layout.addSpacing(15)
+        header_layout.addWidget(lbl_title)
+        header_layout.addStretch()
+
+        layout.addLayout(header_layout)
+
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setStyleSheet("border: 1px solid #313244;")
+        layout.addWidget(line)
+
+        lbl_warning = QLabel()
+        lbl_warning.setTextFormat(Qt.RichText)
+        lbl_warning.setWordWrap(True)
+        lbl_warning.setText(T("info_dialog_warning"))
+        layout.addWidget(lbl_warning)
+
+        btn_layout = QHBoxLayout()
+        btn_ok = QPushButton("✔ OK")
+        btn_ok.setFixedWidth(100)
+        btn_ok.clicked.connect(dialog.accept)
+
+        btn_layout.addStretch()
+        btn_layout.addWidget(btn_ok)
+        btn_layout.addStretch()
+
+        layout.addLayout(btn_layout)
+
+        dialog.exec()
 
     def change_language(self, lang):
         if global_config.get("lang") != lang:

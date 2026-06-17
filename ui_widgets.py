@@ -943,17 +943,14 @@ class ChannelControlWidget(QGroupBox):
                 elif self.radio_manual.isChecked():
                     logical_percent = self.engine.calculate_pwm_manual(working_temp, self.graph_manual.points)
 
-        # Mappatura Hardware (Min Power e Start Boost)
+        # Mappatura Hardware (Potenza Minima)
         if logical_percent is not None:
-            # Legge le impostazioni hardware fisiche del canale.
             hw_config = global_config.get("hardware_channels", {}).get(str(self.channel_id), {})
             min_power = hw_config.get("min_power", 0)
-            boost_en = hw_config.get("boost_en", False)
-            boost_time = hw_config.get("boost_time", 1.0) # <--- Legge il tempo
 
-            # Il Mappatore trasforma la teoria (logical_percent) in pratica (byte e % reale)
+            # Converte il valore logico in fisico tramite il motore
             pwm_val_byte, hardware_percent = self.engine.apply_hardware_limits(
-                self.channel_id, logical_percent, min_power, boost_en, boost_time # <--- Lo passa qui
+                self.channel_id, logical_percent, min_power
             )
 
             self.lbl_pwm.setText(f"Power: {int(hardware_percent)} %")

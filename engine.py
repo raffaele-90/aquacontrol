@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import threading
+import time
 import subprocess
 import datetime
 import os
@@ -41,6 +43,7 @@ class AquaeroEngine:
         self.sensors = {}
 
         self.last_pwm_written = {}
+        self.active_boosts = set()
 
         self.sys_sensors_meta = {}
         self.sys_sensors_paths = {}
@@ -49,12 +52,6 @@ class AquaeroEngine:
 
         # Memoria di stato per il controllore PID {channel_id: {'integral': 0.0, 'prev_error': 0.0, 'last_time': 0.0}}
         self.pid_states = {}
-
-        # Memoria per lo Start Boost {channel_id: boost_end_time}
-        self.boost_active_until = {}
-
-        # Stato precedente per capire quando applicare il boost (passaggio da 0 a >0)
-        self.last_logical_request = {}
 
         # Buffer circolare per memorizzare gli ultimi 60 campionamenti (utile per Sparklines)
         self.history = {}
@@ -208,10 +205,9 @@ class AquaeroEngine:
             if os.path.exists(fan_path):
                 self.fan_channels[i] = fan_path
 
-        # --- INIZIO MODIFICA: Mappatura Dinamica Voltaggi (Regex + Fallback) ---
+        # Mappatura Dinamica Voltaggi (Regex + Fallback) ---
         mapped_channels = set()
 
-        # 1. Tentativo dinamico con Regex sulle label
         for label_file in glob.glob(os.path.join(self.path, "in*_label")):
             try:
                 with open(label_file, 'r') as f:
@@ -276,7 +272,7 @@ class AquaeroEngine:
         return 0
 
     # ---------------------------------------------------------
-    # INTEGRAZIONE DASHBOARD AVANZATA (Storico, Virtuali, UI)
+    # INTEGRAZIONE DASHBOARD (Storico, Virtuali, UI)
     # ---------------------------------------------------------
 
     def set_virtual_sensor(self, virtual_id, hot_sensor_id, cold_sensor_id):
@@ -341,7 +337,7 @@ class AquaeroEngine:
         }
 
     # ---------------------------------------------------------
-    # MATEMATICA E LOGICA DI CONTROLLO TERMICO
+    # MATEMATICA E LOGICA DI CONTROLLO
     # ---------------------------------------------------------
 
     def calculate_virtual_delta(self, temp_hot, temp_cold):
@@ -444,33 +440,19 @@ class AquaeroEngine:
     # MAPPATURA HARDWARE (Min Power & Start Boost)
     # ---------------------------------------------------------
 
-    def apply_hardware_limits(self, channel, logical_percent, min_power_percent, boost_enabled, boost_time=1.0):
+    def apply_hardware_limits(self, channel, logical_percent, min_power_percent):
         """
-        Trasforma la richiesta logica (0-100%) in un comando fisico (0-255),
-        applicando la Potenza Minima e lo Spunto di Avvio dinamico.
+        Converte il valore percentuale logico (0-100) nel valore in byte (0-255)
+        richiesto dal controller hardware, applicando la soglia di potenza minima.
         """
-        current_time = time.time()
         logical_percent = float(logical_percent)
         min_power_percent = float(max(0, min(100, min_power_percent)))
-        boost_time = float(boost_time)
-
-        # Gestione del Boost: Si attiva se si passa da 0 a un valore > 0
-        last_req = self.last_logical_request.get(channel, 0.0)
-
-        if logical_percent > 0.0 and last_req <= 0.0 and boost_enabled:
-            # Imposta il boost dinamico in base alla scelta dell'utente
-            self.boost_active_until[channel] = current_time + boost_time
-
-        self.last_logical_request[channel] = logical_percent
 
         # Calcolo dell'output Hardware
         if logical_percent <= 0.0:
             hardware_percent = 0.0
         else:
-            if current_time < self.boost_active_until.get(channel, 0):
-                hardware_percent = 100.0
-            else:
-                hardware_percent = min_power_percent + ((100.0 - min_power_percent) * (logical_percent / 100.0))
+            hardware_percent = min_power_percent + ((100.0 - min_power_percent) * (logical_percent / 100.0))
 
         hardware_percent = max(0.0, min(100.0, hardware_percent))
         byte_val = int(hardware_percent * 2.55)
@@ -495,36 +477,38 @@ class AquaeroEngine:
             except Exception:
                 pass
 
-    def trigger_emergency_shutdown(self, sensor_name, temperature, delay_seconds=0):
-        """Registra il log di emergenza e delega lo spegnimento forzato a systemd."""
+    def trigger_emergency_shutdown(self, reason="Unknown", value=0.0, delay_seconds=0):
+        import os
+        import datetime
+        import subprocess
+        import json
+
         log_dir = os.path.expanduser("~/.config/aquacontrol")
         os.makedirs(log_dir, exist_ok=True)
-        log_file = os.path.join(log_dir, "emergency_log.txt")
 
-        # Timestamp con precisione al secondo
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        log_message = f"[{timestamp}] SHUTDOWN DI EMERGENZA! Sensore: '{sensor_name}' | Temp: {temperature}°C\n"
+        log_message = f"[{timestamp}] SHUTDOWN DI EMERGENZA! Motivo: '{reason}' | Valore: {value}\n"
 
         try:
-            with open(log_file, "a") as f:
+            # 1. Scrittura del log storico permanente
+            with open(os.path.join(log_dir, "emergency_log.txt"), "a") as f:
                 f.write(log_message)
+
+            # 2. Generazione del flag diagnostico per il prossimo riavvio
+            pending_file = os.path.join(log_dir, "emergency_pending.json")
+            with open(pending_file, "w") as f:
+                json.dump({"reason": reason, "value": value, "timestamp": timestamp}, f, indent=4)
         except Exception:
-            # In emergenza non blocchiamo l'arresto se la scrittura del log fallisce
+            # In emergenza non blocchiamo l'arresto se la scrittura fallisce
             pass
 
-        # Delega la pianificazione dello spegnimento a systemd per garantire
-        # l'esecuzione anche in caso di crash del processo Python.
-        if delay_seconds > 0:
-            subprocess.Popen(["systemd-run", f"--on-active={delay_seconds}", "systemctl", "poweroff", "--force"])
-        else:
-            subprocess.Popen(["systemctl", "--force", "--force", "poweroff"])
+        print(f"[Emergenza] Innesco spegnimento hardware tra {delay_seconds} secondi. Salvate i dati.")
 
-        # FIX: Affidiamo la pianificazione dello spegnimento a systemd.
-        # Diventa indipendente ed eseguito anche se il processo Python dovesse venire chiuso o crashare.
         if delay_seconds > 0:
-            subprocess.Popen(["systemd-run", f"--on-active={delay_seconds}", "systemctl", "poweroff", "--force"])
-        else:
-            subprocess.Popen(["systemctl", "--force", "--force", "poweroff"])
+            time.sleep(delay_seconds)
+
+        # Spegnimento forzato tramite escalation sudoers
+        subprocess.Popen(["sudo", "systemctl", "poweroff", "--force", "--force"])
 
     def set_channel_mode_hid(self, channel, mode):
         """Cambia modalità (DC o PWM) tramite protocollo USB raw."""
@@ -589,3 +573,44 @@ class AquaeroEngine:
 
         except Exception as e:
             print(f"[HIDAPI] Errore di comunicazione USB: {e}")
+
+    def apply_pwm(self, channel_id, target_pwm, boost_enabled=False, boost_time=1.0):
+        """
+        Gestisce l'invio del segnale PWM. Se il canale richiede un avvio rapido (boost),
+        delega l'esecuzione a un thread asincrono per non bloccare il ciclo di lettura principale.
+        """
+        if channel_id in self.active_boosts:
+            return
+
+        last_pwm = self.last_pwm_written.get(channel_id, 0)
+
+        if last_pwm == 0 and target_pwm > 0 and boost_enabled:
+            threading.Thread(
+                target=self._async_boost_worker,
+                args=(channel_id, target_pwm, boost_time),
+                daemon=True
+            ).start()
+        else:
+            self.set_fan_speed(channel_id, target_pwm)
+            # Aggiorna la memoria della GUI SOLO se non stiamo innescando un boost
+            self.last_pwm_written[channel_id] = target_pwm
+
+    def _async_boost_worker(self, channel_id, target_pwm, boost_time):
+        """
+        Esegue l'impulso iniziale (100% PWM) per il tempo specificato,
+        seguito dall'assestamento al valore nominale.
+        """
+        self.active_boosts.add(channel_id)
+
+        # Invia l'impulso hardware
+        self.set_fan_speed(channel_id, 255)
+        # Forza la GUI a mostrare l'effettivo 100% per tutta la durata del boost
+        self.last_pwm_written[channel_id] = 255
+
+        time.sleep(boost_time)
+
+        # Fine impulso, torna al target richiesto
+        self.set_fan_speed(channel_id, target_pwm)
+        self.last_pwm_written[channel_id] = target_pwm
+
+        self.active_boosts.discard(channel_id)

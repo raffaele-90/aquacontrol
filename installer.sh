@@ -1,7 +1,8 @@
+#!/bin/bash
 # AquaControl
 # Copyright (C) 2026 Raffaele Schiavone
 #
-# This program is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify...
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -13,8 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#!/bin/bash
-# AquaControl - Installatore Universale Linux (v3.1.0)
+# AquaControl - Installatore Universale Linux (v3.2.0)
 
 if [ "$EUID" -ne 0 ]; then
   echo "ERRORE: Per installare AquaControl nel sistema, esegui lo script come root (es. sudo ./installer.sh)"
@@ -76,21 +76,13 @@ if [ "$AQUAERO_FOUND" -eq 0 ]; then
     echo "   ATTENZIONE: Nessun Aquaero rilevato attualmente nel sistema."
 fi
 
-echo "=> Configurazione regole Polkit per lo spegnimento di emergenza..."
-mkdir -p /etc/polkit-1/rules.d
-cat << 'EOF' > /etc/polkit-1/rules.d/99-aquacontrol-shutdown.rules
-/* Consente agli utenti del gruppo wheel di forzare lo spegnimento ignorando gli inhibitor */
-polkit.addRule(function(action, subject) {
-    if (action.id == "org.freedesktop.login1.power-off" ||
-        action.id == "org.freedesktop.login1.power-off-multiple-sessions" ||
-        action.id == "org.freedesktop.login1.power-off-ignore-inhibit") {
-        if (subject.isInGroup("wheel")) {
-            return polkit.Result.YES;
-        }
-    }
-});
+echo "=> Configurazione regole Sudoers per lo spegnimento di emergenza..."
+mkdir -p /etc/sudoers.d
+cat << 'EOF' > /etc/sudoers.d/99-aquacontrol-shutdown
+# AquaControl - Spegnimento di emergenza per utenti wheel
+%wheel ALL=(ALL) NOPASSWD: /usr/bin/systemctl poweroff --force --force
 EOF
-chmod 644 /etc/polkit-1/rules.d/99-aquacontrol-shutdown.rules
+chmod 440 /etc/sudoers.d/99-aquacontrol-shutdown
 
 echo "=> Aggiornamento dei demoni di sistema e cache icone..."
 udevadm control --reload-rules

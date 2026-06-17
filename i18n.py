@@ -64,7 +64,7 @@ TRANSLATIONS = {
         "sec_cmd": "⚠️ Esegui Comando (es. shutdown):",
         "sec_cmd_custom": "Esegui comando personalizzato:",
         "sec_shutdown": "Spegnimento forzato di emergenza",
-        "sec_delay": "↳ Ritarda spegnimento per completamento comando:",
+        "sec_delay": "↳ Attesa esecuzione comando prima di spegnere:",
         "sec_save": "💾 Salva impostazioni",
         "osd_title": "Impostazioni OSD",
         "sec_volt": "Allarme Voltaggio (≤):",
@@ -106,7 +106,6 @@ TRANSLATIONS = {
         "dialog_warn_default": "Sovrascrivi il 'Default' col tasto Salva.",
         "dialog_ren_title": "Rinomina",
         "dialog_ren_msg": "Nuovo nome:",
-        "alarm_critical_title": "🚨 ALLARME CRITICO 🚨",
         "alarm_cancel_exec": "ANNULLA ({s}s)",
         "alarm_exec_in": "Esecuzione in: {s}s",
         "alarm_close_verify": "CHIUDI",
@@ -157,16 +156,22 @@ TRANSLATIONS = {
         "hide_graph_ctrls": "▼ Nascondi Controlli Grafico",
         "show_graph_ctrls": "▶ Espandi Controlli Grafico ({min}-{max} °C)",
         "select_color": "Seleziona Colore",
-        "loop_emergency": "⚠️ Protezione Hardware Attivata",
         "alarm_rpm_msg": "Canale {ch}: RPM critici ({rpm} RPM)",
         "alarm_temp_msg": "Canale {ch}: Temperatura critica ({temp:.1f} °C)",
         "alarm_power_msg": "Canale {ch}: Potenza critica ({p}%)",
         "close_to_tray": "Riduci a icona alla chiusura",
-       "info_dialog_html": """
-        <h3 style='color: #00e5ff; margin-bottom: 10px;'>AquaControl 3.1</h3>
-        <p><b>Maintainer:</b> Raffaele Schiavone</p>
-        <p>Progetto indipendente, rilasciato sotto licenza GPLv3.</p>
-        <hr style='border: 1px solid #313244; margin: 15px 0;'>
+        "sec_delay_alarm": "Ritardo Allarme:",
+        "alarm_critical_title": "Allarme Critico di Sistema",
+        "loop_emergency": "Intervento di Sicurezza Hardware",
+        "popup_fail_safe_msg": "Il sistema Fail-Safe ha interrotto l'ultima sessione per preservare l'integrità dei componenti.",
+        "popup_log_title": "Registro di Diagnostica:",
+        "popup_date_time": "Data e Ora:",
+        "popup_alarm_cause": "Causa dell'innesco:",
+        "info_dialog_header": """
+        <h2 style='color: #00e5ff; margin-bottom: 5px; margin-top: 0;'>AquaControl 3.2.0</h2>
+        <p style='margin-top: 0;'><b>Maintainer:</b> Raffaele Schiavone<br>Progetto indipendente, rilasciato sotto licenza GPLv3.</p>
+        """,
+        "info_dialog_warning": """
         <p style='color: #f38ba8; font-size: 14px;'><b>⚠️ Avviso di Compatibilità</b></p>
         <p style='font-size: 13px; line-height: 1.5; color: #cdd6f4;'>
         Testato e verificato su Aquaero 6LT con <b>Firmware 2104</b>.<br><br>
@@ -223,7 +228,7 @@ TRANSLATIONS = {
         "sec_cmd": "⚠️ Custom Command:",
         "sec_cmd_custom": "Execute command:",
         "sec_shutdown": "Forced shutdown",
-        "sec_delay": "↳ Delay shutdown (sec):",
+        "sec_delay": "↳ Wait for command execution before shutdown:",
         "sec_save": "💾 Save Settings",
         "osd_title": "OSD Settings",
         "osd_info": "Desktop overlay configuration.",
@@ -264,7 +269,6 @@ TRANSLATIONS = {
         "dialog_warn_default": "Overwrite 'Default' by saving.",
         "dialog_ren_title": "Rename",
         "dialog_ren_msg": "New name:",
-        "alarm_critical_title": "🚨 CRITICAL ALARM 🚨",
         "alarm_cancel_exec": "CANCEL ({s}s)",
         "alarm_exec_in": "Execution in: {s}s",
         "alarm_close_verify": "CLOSE",
@@ -315,16 +319,22 @@ TRANSLATIONS = {
         "hide_graph_ctrls": "▼ Hide Controls",
         "show_graph_ctrls": "▶ Controls ({min}-{max} °C)",
         "select_color": "Select",
-        "loop_emergency": "⚠️ Hardware Protection",
         "alarm_rpm_msg": "Ch {ch}: Critical RPM ({rpm})",
         "alarm_temp_msg": "Ch {ch}: Critical Temp ({temp:.1f}°C)",
         "alarm_power_msg": "Ch {ch}: Power Drop ({p}%)",
         "close_to_tray": "Minimize to tray on close",
-        "info_dialog_html": """
-        <h3 style='color: #00e5ff; margin-bottom: 10px;'>AquaControl 3.1</h3>
-        <p><b>Maintainer:</b> Raffaele Schiavone</p>
-        <p>Independent project, GPLv3 license.</p>
-        <hr style='border: 1px solid #313244; margin: 15px 0;'>
+        "sec_delay_alarm": "Alarm Delay:",
+        "alarm_critical_title": "System Critical Alarm",
+        "loop_emergency": "Hardware Security Intervention",
+        "popup_fail_safe_msg": "The Fail-Safe system interrupted the last session to protect component integrity.",
+        "popup_log_title": "Diagnostic Log:",
+        "popup_date_time": "Date/Time:",
+        "popup_alarm_cause": "Trigger Cause:",
+        "info_dialog_header": """
+        <h2 style='color: #00e5ff; margin-bottom: 5px; margin-top: 0;'>AquaControl 3.2.0</h2>
+        <p style='margin-top: 0;'><b>Maintainer:</b> Raffaele Schiavone<br>Independent project, GPLv3 license.</p>
+        """,
+        "info_dialog_warning": """
         <p style='color: #f38ba8; font-size: 14px;'><b>⚠️ Compatibility Warning</b></p>
         <p style='font-size: 13px; line-height: 1.5; color: #cdd6f4;'>
         Verified on Aquaero 6LT with <b>Firmware 2104</b>.<br><br>
@@ -381,7 +391,7 @@ TRANSLATIONS = {
         "sec_cmd": "⚠️ Commande :",
         "sec_cmd_custom": "Exécuter la commande :",
         "sec_shutdown": "Arrêt forcé",
-        "sec_delay": "↳ Délai d'arrêt (sec) :",
+        "sec_delay": "↳ Attente exécution commande avant l'arrêt :",
         "sec_save": "💾 Enregistrer",
         "osd_title": "Paramètres OSD",
         "osd_info": "Configuration de l'overlay.",
@@ -422,7 +432,6 @@ TRANSLATIONS = {
         "dialog_warn_default": "Écraser 'Default' en enregistrant.",
         "dialog_ren_title": "Renommer",
         "dialog_ren_msg": "Nouveau nom :",
-        "alarm_critical_title": "🚨 ALARME CRITIQUE 🚨",
         "alarm_cancel_exec": "ANNULER ({s}s)",
         "alarm_exec_in": "Exécution : {s}s",
         "alarm_close_verify": "FERMER",
@@ -473,16 +482,22 @@ TRANSLATIONS = {
         "hide_graph_ctrls": "▼ Masquer Contrôles",
         "show_graph_ctrls": "▶ Contrôles ({min}-{max} °C)",
         "select_color": "Couleur",
-        "loop_emergency": "⚠️ Protection Activée",
         "alarm_rpm_msg": "Ch {ch}: RPM critiques ({rpm})",
         "alarm_temp_msg": "Ch {ch}: Temp critique ({temp:.1f}°C)",
         "alarm_power_msg": "Ch {ch}: Chute Puissance ({p}%)",
         "close_to_tray": "Réduire dans la zone de notification à la fermeture",
-        "info_dialog_html": """
-        <h3 style='color: #00e5ff; margin-bottom: 10px;'>AquaControl 3.1</h3>
-        <p><b>Mainteneur :</b> Raffaele Schiavone</p>
-        <p>Projet indépendant, licence GPLv3.</p>
-        <hr style='border: 1px solid #313244; margin: 15px 0;'>
+        "sec_delay_alarm": "Délai d'alarme :",
+        "alarm_critical_title": "Alarme Critique du Système",
+        "loop_emergency": "Intervention de Sécurité Matérielle",
+        "popup_fail_safe_msg": "Le système Fail-Safe a interrompu la dernière session pour préserver l'intégrité des composants.",
+        "popup_log_title": "Journal de Diagnostic :",
+        "popup_date_time": "Date et Heure :",
+        "popup_alarm_cause": "Cause du déclenchement :",
+        "info_dialog_header": """
+        <h2 style='color: #00e5ff; margin-bottom: 5px; margin-top: 0;'>AquaControl 3.2.0</h2>
+        <p style='margin-top: 0;'><b>Mainteneur :</b> Raffaele Schiavone<br>Projet indépendant, licence GPLv3.</p>
+        """,
+        "info_dialog_warning": """
         <p style='color: #f38ba8; font-size: 14px;'><b>⚠️ Compatibilité</b></p>
         <p style='font-size: 13px; line-height: 1.5; color: #cdd6f4;'>
         Vérifié sur Aquaero 6LT (<b>Firmware 2104</b>).<br><br>
@@ -539,7 +554,7 @@ TRANSLATIONS = {
         "sec_cmd": "⚠️ Comando:",
         "sec_cmd_custom": "Ejecutar comando:",
         "sec_shutdown": "Apagado forzado",
-        "sec_delay": "↳ Retraso de apagado (sec):",
+        "sec_delay": "↳ Espera de ejecución del comando antes de apagar:",
         "sec_save": "💾 Guardar",
         "osd_title": "Ajustes OSD",
         "osd_info": "Configuración del overlay.",
@@ -580,7 +595,6 @@ TRANSLATIONS = {
         "dialog_warn_default": "Sobrescribir 'Default' al guardar.",
         "dialog_ren_title": "Renombrar",
         "dialog_ren_msg": "Nuevo nombre:",
-        "alarm_critical_title": "🚨 ALARMA CRÍTICA 🚨",
         "alarm_cancel_exec": "CANCELAR ({s}s)",
         "alarm_exec_in": "Ejecución: {s}s",
         "alarm_close_verify": "CERRAR",
@@ -631,16 +645,22 @@ TRANSLATIONS = {
         "hide_graph_ctrls": "▼ Ocultar Controles",
         "show_graph_ctrls": "▶ Controles ({min}-{max} °C)",
         "select_color": "Color",
-        "loop_emergency": "⚠️ Protección Activada",
         "alarm_rpm_msg": "Ch {ch}: RPM críticos ({rpm})",
         "alarm_temp_msg": "Ch {ch}: Temp crítica ({temp:.1f}°C)",
         "alarm_power_msg": "Ch {ch}: Caída Potencia ({p}%)",
         "close_to_tray": "Minimizar en la bandeja al cerrar",
-        "info_dialog_html": """
-        <h3 style='color: #00e5ff; margin-bottom: 10px;'>AquaControl 3.1</h3>
-        <p><b>Mantenedor:</b> Raffaele Schiavone</p>
-        <p>Proyecto independiente, licencia GPLv3.</p>
-        <hr style='border: 1px solid #313244; margin: 15px 0;'>
+        "sec_delay_alarm": "Retraso de Alarma:",
+        "alarm_critical_title": "Alarma Crítica del Sistema",
+        "loop_emergency": "Intervención de Seguridad de Hardware",
+        "popup_fail_safe_msg": "El sistema Fail-Safe interrumpió la última sesión para preservar la integridad de los componentes.",
+        "popup_log_title": "Registro de Diagnóstico:",
+        "popup_date_time": "Fecha y Hora:",
+        "popup_alarm_cause": "Causa de activación:",
+        "info_dialog_header": """
+        <h2 style='color: #00e5ff; margin-bottom: 5px; margin-top: 0;'>AquaControl 3.2.0</h2>
+        <p style='margin-top: 0;'><b>Mantenedor:</b> Raffaele Schiavone<br>Proyecto independiente, licencia GPLv3.</p>
+        """,
+        "info_dialog_warning": """
         <p style='color: #f38ba8; font-size: 14px;'><b>⚠️ Compatibilidad</b></p>
         <p style='font-size: 13px; line-height: 1.5; color: #cdd6f4;'>
         Verificado en Aquaero 6LT (<b>Firmware 2104</b>).<br><br>
@@ -697,7 +717,7 @@ TRANSLATIONS = {
         "sec_cmd": "⚠️ Befehl:",
         "sec_cmd_custom": "Befehl ausführen:",
         "sec_shutdown": "Not-Aus",
-        "sec_delay": "↳ Verzögerung (sec):",
+        "sec_delay": "↳ Wartezeit für Befehlsausführung vor dem Abschalten:",
         "sec_save": "💾 Speichern",
         "osd_title": "OSD Einstellungen",
         "osd_info": "Overlay Konfiguration.",
@@ -738,7 +758,6 @@ TRANSLATIONS = {
         "dialog_warn_default": "'Default' beim Speichern überschreiben.",
         "dialog_ren_title": "Umbenennen",
         "dialog_ren_msg": "Neuer Name:",
-        "alarm_critical_title": "🚨 KRITISCHER ALARM 🚨",
         "alarm_cancel_exec": "ABBRECHEN ({s}s)",
         "alarm_exec_in": "Ausführung: {s}s",
         "alarm_close_verify": "SCHLIESSEN",
@@ -789,16 +808,22 @@ TRANSLATIONS = {
         "hide_graph_ctrls": "▼ Steuerungen ausblenden",
         "show_graph_ctrls": "▶ Steuerungen ({min}-{max} °C)",
         "select_color": "Farbe",
-        "loop_emergency": "⚠️ Hardwareschutz",
         "alarm_rpm_msg": "Ch {ch}: Kritische RPM ({rpm})",
         "alarm_temp_msg": "Ch {ch}: Kritische Temp ({temp:.1f}°C)",
         "alarm_power_msg": "Ch {ch}: Leistungseinbruch ({p}%)",
         "close_to_tray": "Beim Schließen in den Infobereich minimieren",
-        "info_dialog_html": """
-        <h3 style='color: #00e5ff; margin-bottom: 10px;'>AquaControl 3.1</h3>
-        <p><b>Betreuer:</b> Raffaele Schiavone</p>
-        <p>Unabhängiges Projekt, GPLv3-Lizenz.</p>
-        <hr style='border: 1px solid #313244; margin: 15px 0;'>
+        "sec_delay_alarm": "Alarmverzögerung:",
+        "alarm_critical_title": "Kritischer Systemalarm",
+        "loop_emergency": "Hardware-Sicherheitseingriff",
+        "popup_fail_safe_msg": "Das Fail-Safe-System hat die letzte Sitzung unterbrochen, um die Integrität der Komponenten zu bewahren.",
+        "popup_log_title": "Diagnoseprotokoll:",
+        "popup_date_time": "Datum und Uhrzeit:",
+        "popup_alarm_cause": "Auslöser:",
+        "info_dialog_header": """
+        <h2 style='color: #00e5ff; margin-bottom: 5px; margin-top: 0;'>AquaControl 3.2.0</h2>
+        <p style='margin-top: 0;'><b>Betreuer:</b> Raffaele Schiavone<br>Unabhängiges Projekt, GPLv3-Lizenz.</p>
+        """,
+        "info_dialog_warning": """
         <p style='color: #f38ba8; font-size: 14px;'><b>⚠️ Kompatibilität</b></p>
         <p style='font-size: 13px; line-height: 1.5; color: #cdd6f4;'>
         Verifiziert auf Aquaero 6LT (<b>Firmware 2104</b>).<br><br>

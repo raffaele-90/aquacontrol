@@ -340,6 +340,15 @@ class SecurityTabWidget(QWidget):
             group = QGroupBox(f"{ch_name}")
             glayout = QFormLayout(group)
 
+            box_delay_alarm = QHBoxLayout()
+            lbl_delay_alarm = QLabel(T("sec_delay_alarm"))
+            spin_delay_alarm = QSpinBox()
+            spin_delay_alarm.setRange(0, 60)
+            spin_delay_alarm.setSuffix(" s")
+            box_delay_alarm.addWidget(lbl_delay_alarm)
+            box_delay_alarm.addWidget(spin_delay_alarm)
+            box_delay_alarm.addStretch()
+            glayout.addRow("", box_delay_alarm)
             box_rpm = QHBoxLayout()
             chk_rpm = QCheckBox(T("sec_rpm"))
             spin_rpm = QSpinBox()
@@ -392,13 +401,14 @@ class SecurityTabWidget(QWidget):
             spin_power.valueChanged.connect(self.set_dirty)
             chk_volt.toggled.connect(self.set_dirty)
             spin_volt.valueChanged.connect(self.set_dirty)
+            spin_delay_alarm.valueChanged.connect(self.set_dirty)
 
-            # Aggiornato con chk_volt e spin_volt
             self.sec_channels[str(i)] = {
                 "chk_rpm": chk_rpm, "spin_rpm": spin_rpm,
                 "chk_temp": chk_temp, "spin_temp": spin_temp,
                 "chk_power": chk_power, "spin_power": spin_power,
-                "chk_volt": chk_volt, "spin_volt": spin_volt
+                "chk_volt": chk_volt, "spin_volt": spin_volt,
+                "spin_delay_alarm": spin_delay_alarm
             }
             sec_layout.addWidget(group)
 
@@ -482,8 +492,9 @@ class SecurityTabWidget(QWidget):
                 "temp_val": widgets["spin_temp"].value(),
                 "power_en": widgets["chk_power"].isChecked(),
                 "power_val": widgets["spin_power"].value(),
-                "volt_en": widgets["chk_volt"].isChecked(),   # <--- NUOVO
-                "volt_val": widgets["spin_volt"].value()      # <--- NUOVO
+                "volt_en": widgets["chk_volt"].isChecked(),
+                "volt_val": widgets["spin_volt"].value(),
+                "delay_val": widgets["spin_delay_alarm"].value()
             }
         sec_config["actions"] = {
             "sound_en": self.chk_sound.isChecked(),
@@ -509,8 +520,9 @@ class SecurityTabWidget(QWidget):
             widgets["spin_temp"].blockSignals(True); widgets["spin_temp"].setValue(saved.get("temp_val", 55)); widgets["spin_temp"].blockSignals(False)
             widgets["chk_power"].blockSignals(True); widgets["chk_power"].setChecked(saved.get("power_en", False)); widgets["chk_power"].blockSignals(False)
             widgets["spin_power"].blockSignals(True); widgets["spin_power"].setValue(saved.get("power_val", 20)); widgets["spin_power"].blockSignals(False)
-
-            # --- NUOVO: Carica stato Volt ---
+            widgets["spin_delay_alarm"].blockSignals(True)
+            widgets["spin_delay_alarm"].setValue(saved.get("delay_val", 3))
+            widgets["spin_delay_alarm"].blockSignals(False)
             widgets["chk_volt"].blockSignals(True); widgets["chk_volt"].setChecked(saved.get("volt_en", False)); widgets["chk_volt"].blockSignals(False)
             widgets["spin_volt"].blockSignals(True); widgets["spin_volt"].setValue(saved.get("volt_val", 0.0)); widgets["spin_volt"].blockSignals(False)
 
