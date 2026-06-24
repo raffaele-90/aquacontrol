@@ -52,7 +52,7 @@ class CurveVisualizer(QWidget):
         painter.setRenderHint(QPainter.Antialiasing)
         w = self.width(); h = self.height()
 
-        bg_color = QColor("#11111b") if self.isEnabled() else QColor("#181825")
+        bg_color = QColor(35, 38, 41, 225) if self.isEnabled() else QColor(20, 22, 24, 225)
         painter.fillRect(0, 0, w, h, bg_color)
 
         margin_x = 35; margin_y = 25
@@ -284,7 +284,7 @@ class InteractiveCurveWidget(QWidget):
         painter.setRenderHint(QPainter.Antialiasing)
         w = self.width(); h = self.height()
 
-        bg_color = QColor("#11111b") if self.isEnabled() else QColor("#181825")
+        bg_color = QColor(35, 38, 41, 225) if self.isEnabled() else QColor(20, 22, 24, 225)
         painter.fillRect(0, 0, w, h, bg_color)
 
         graph_w = w - (self.margin_x * 2); graph_h = h - (self.margin_y * 2)

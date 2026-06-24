@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlide
                                QComboBox, QCheckBox, QPushButton, QFormLayout,
                                QSpinBox, QDoubleSpinBox, QLineEdit, QColorDialog, QFontDialog,
                                QMessageBox, QDialog, QDialogButtonBox)
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QColor, QFont, QCursor
 
 from config_manager import global_config, save_config
@@ -28,8 +28,32 @@ from i18n import T
 from ui_widgets import format_temp, SparklineWidget, PWMFillBar
 from guide_texts import get_guide_text
 
+FLOW_PRESETS = {
+    "User defined": {},
+    "Digmesa 5.6 mm (53061)": {
+        "Water": {"N/A": 256},
+        "DP Ultra": {"N/A": 262}
+    },
+    "Digmesa 3.3 mm (53024)": {
+        "Water": {"N/A": 509},
+        "DP Ultra": {"N/A": 522}
+    },
+    "Aqua Computer high flow (53068)": {
+        "Water": {"Inner diameter <= 7mm": 159, "Inner diameter > 7mm": 153},
+        "DP Ultra": {"Inner diameter <= 7mm": 163, "Inner diameter > 7mm": 157}
+    },
+    "Aqua Computer high flow LT (53291)": {
+        "Water": {"Inner diameter <= 7mm": 173, "Inner diameter > 7mm": 164},
+        "DP Ultra": {"Inner diameter <= 7mm": 177, "Inner diameter > 7mm": 167}
+    },
+    "Aqua Computer high flow 2 (53292)": {
+        "Water": {"Inner diameter <= 7mm": 148, "Inner diameter > 7mm": 144},
+        "DP Ultra": {"Inner diameter <= 7mm": 151, "Inner diameter > 7mm": 147}
+    }
+}
+
 class DashboardTabWidget(QWidget):
-    """Tab visuale informativo avanzato: Storico, Delta T e Carichi PWM."""
+    """Tab visuale informativo avanzato: Storico, Delta T e Carichi PWM. Layout Responsivo."""
     def __init__(self, parent=None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
@@ -39,7 +63,7 @@ class DashboardTabWidget(QWidget):
         header_layout.setAlignment(Qt.AlignVCenter)
 
         lbl_title = QLabel(f"📊 {T('tab_dash')}")
-        lbl_title.setStyleSheet("font-size: 22px; color: #00e5ff; font-weight: bold;")
+        lbl_title.setStyleSheet("font-size: 24px; color: #00e5ff; font-weight: bold;")
         header_layout.addWidget(lbl_title)
 
         header_layout.addSpacing(20)
@@ -54,7 +78,6 @@ class DashboardTabWidget(QWidget):
             QComboBox { background-color: #313244; color: #cdd6f4; border-radius: 4px; padding: 4px 10px; font-weight: bold; }
             QComboBox::drop-down { border: none; }
         """)
-        # Carica i profili (con un fallback se il dizionario non esiste)
         profiles = global_config.get("profiles", {"Default": {}})
         self.combo_profile.addItems(profiles.keys())
         active_prof = global_config.get("active_profile", "Default")
@@ -84,30 +107,64 @@ class DashboardTabWidget(QWidget):
         scroll.setWidget(container)
         self.main_layout = QVBoxLayout(container)
 
-        # Creazione dei Gruppi Logici
-        self.grp_virt = QGroupBox(f"✨ {T('dash_virt_sensors')}")
+        # ------------------------------
+        # COSTRUZIONE SEZIONI DINAMICHE
+        # ------------------------------
+
+        # Sensori Virtuali
+        self.lbl_virt = QLabel(f"✨ {T('dash_virt_sensors')}")
+        self.lbl_virt.setStyleSheet("font-size: 16px; color: #cdd6f4; font-weight: bold; margin-top: 15px;")
+        self.grp_virt = QWidget()
         self.lay_virt = QGridLayout(self.grp_virt)
-        self.grp_virt.hide() # Nascosto di default se non ci sono Delta T attivi
+        self.lay_virt.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        self.lbl_virt.hide()
+        self.grp_virt.hide()
 
-        self.grp_sys = QGroupBox(f"💻 {T('dash_sys_sensors')}")
+        # Sensori di Sistema
+        self.lbl_sys = QLabel(f"💻 {T('dash_sys_sensors')}")
+        self.lbl_sys.setStyleSheet("font-size: 16px; color: #cdd6f4; font-weight: bold; margin-top: 15px;")
+        self.grp_sys = QWidget()
         self.lay_sys = QGridLayout(self.grp_sys)
+        self.lay_sys.setAlignment(Qt.AlignLeft | Qt.AlignTop)
 
-        self.grp_fans = QGroupBox(f"⚡ {T('dash_12v_out')}")
+        # Sensori di Flusso
+        self.lbl_flow = QLabel(f"🌀 {T('hw_flow_sensors_title')}")
+        self.lbl_flow.setStyleSheet("font-size: 16px; color: #00e5ff; font-weight: bold; margin-top: 15px;")
+        self.grp_flow = QWidget()
+        self.lay_flow = QGridLayout(self.grp_flow)
+        self.lay_flow.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        self.lbl_flow.hide()
+        self.grp_flow.hide()
+
+        # Uscite 12V
+        self.lbl_fans = QLabel(f"⚡ {T('dash_12v_out')}")
+        self.lbl_fans.setStyleSheet("font-size: 16px; color: #f9e2af; font-weight: bold; margin-top: 15px;")
+        self.grp_fans = QWidget()
         self.lay_fans = QGridLayout(self.grp_fans)
+        self.lay_fans.setAlignment(Qt.AlignLeft | Qt.AlignTop)
 
-        self.grp_aqua = QGroupBox(f"🌡️ {T('dash_aqua_sensors')}")
+        # Sensori Aquaero
+        self.lbl_aqua = QLabel(f"🌡️ {T('dash_aqua_sensors')}")
+        self.lbl_aqua.setStyleSheet("font-size: 16px; color: #f38ba8; font-weight: bold; margin-top: 15px;")
+        self.grp_aqua = QWidget()
         self.lay_aqua = QGridLayout(self.grp_aqua)
+        self.lay_aqua.setAlignment(Qt.AlignLeft | Qt.AlignTop)
 
+        self.main_layout.addWidget(self.lbl_virt)
         self.main_layout.addWidget(self.grp_virt)
+        self.main_layout.addWidget(self.lbl_sys)
         self.main_layout.addWidget(self.grp_sys)
+        self.main_layout.addWidget(self.lbl_flow)
+        self.main_layout.addWidget(self.grp_flow)
+        self.main_layout.addWidget(self.lbl_fans)
         self.main_layout.addWidget(self.grp_fans)
+        self.main_layout.addWidget(self.lbl_aqua)
         self.main_layout.addWidget(self.grp_aqua)
         self.main_layout.addStretch()
 
         layout.addWidget(scroll)
 
     def change_active_profile(self, profile_name):
-        """Salva il cambio di profilo."""
         global_config["active_profile"] = profile_name
         save_config(global_config)
 
@@ -121,20 +178,28 @@ class DashboardTabWidget(QWidget):
     def update_telemetry(self, data):
         self._clear_layout(self.lay_virt)
         self._clear_layout(self.lay_sys)
+        self._clear_layout(self.lay_flow)
         self._clear_layout(self.lay_fans)
         self._clear_layout(self.lay_aqua)
 
+        # Calcolo Dinamico delle colonne in base alla larghezza della finestra
+        # Considerando una card larga in media ~300px + i margini
+        available_width = self.width()
+        num_cols = max(1, available_width // 310)
+
         col_virt, row_virt = 0, 0
         col_sys, row_sys = 0, 0
+        col_flow, row_flow = 0, 0
         col_fans, row_fans = 0, 0
         col_aqua, row_aqua = 0, 0
 
         hidden = global_config.get("hidden_sensors", [])
         histories = data.get("history", {})
 
-        # Sensori Virtuali (Delta T)
+        # 1. Sensori Virtuali (Delta T)
         virt_data = data.get('virtuals', {})
         if virt_data:
+            self.lbl_virt.show()
             self.grp_virt.show()
             for v_id, val in virt_data.items():
                 if v_id in hidden: continue
@@ -142,11 +207,12 @@ class DashboardTabWidget(QWidget):
                 hist = histories.get(v_id, [])
                 self._add_dash_card(self.lay_virt, name, format_temp(val), "🧮", row_virt, col_virt, v_id, history_data=hist)
                 col_virt += 1
-                if col_virt > 2: col_virt = 0; row_virt += 1
+                if col_virt >= num_cols: col_virt = 0; row_virt += 1
         else:
+            self.lbl_virt.hide()
             self.grp_virt.hide()
 
-        # Sistema (Fix Voltaggi)
+        # 2. Sistema
         sys_data = data.get('system', {})
         for s_id, val in sys_data.items():
             if s_id in hidden: continue
@@ -161,15 +227,37 @@ class DashboardTabWidget(QWidget):
                 self._add_dash_card(self.lay_sys, name, format_temp(val), "🖥️", row_sys, col_sys, s_id, history_data=hist)
 
             col_sys += 1
-            if col_sys > 2: col_sys = 0; row_sys += 1
+            if col_sys >= num_cols: col_sys = 0; row_sys += 1
 
-        # Uscite Hardware
+        # 3. Sensori di Flusso
+        flow_data = data.get('flows', {})
+        flow_config = global_config.get("flow_sensors", {})
+
+        has_active_flows = False
+        for flow_id, val in flow_data.items():
+            conf = flow_config.get(str(flow_id), {})
+            if not conf.get("enabled", False):
+                continue
+
+            has_active_flows = True
+            s_id = f"flow_rate_{flow_id}"
+
+            if s_id in hidden: continue
+
+            hist = histories.get(s_id, [])
+            self._add_dash_card(self.lay_flow, T("hw_flow_sensor_num").format(i=flow_id), f"{val:.1f} L/h", "🌀", row_flow, col_flow, s_id, history_data=hist)
+
+            col_flow += 1
+            if col_flow >= num_cols: col_flow = 0; row_flow += 1
+
+        self.lbl_flow.setVisible(has_active_flows)
+        self.grp_flow.setVisible(has_active_flows)
+
+        # 4. Uscite Hardware (12V)
         pwm_loads = data.get('pwm_loads', {})
         volts = data.get('volts', {})
         hw_config = global_config.get("hardware_channels", {})
         for ch_id, rpm in data.get('rpms', {}).items():
-
-            # --- FIX: Salta la card se il canale è disabilitato ---
             ch_conf = hw_config.get(str(ch_id), {})
             if not ch_conf.get("enabled", True): continue
 
@@ -183,9 +271,9 @@ class DashboardTabWidget(QWidget):
             self._add_dash_card(self.lay_fans, ch_name, f"{rpm} RPM", "⚡", row_fans, col_fans, s_id, history_data=hist, pwm_load=pwm_load, sub_value=f"{volt_val:.2f} V")
 
             col_fans += 1
-            if col_fans > 2: col_fans = 0; row_fans += 1
+            if col_fans >= num_cols: col_fans = 0; row_fans += 1
 
-        # Aquaero (Temperature fisiche/liquido)
+        # 5. Aquaero (Temperature hardware)
         for s_id, temp in data.get('temps', {}).items():
             if s_id in hidden: continue
             name = global_config["sensors"].get(s_id, s_id)
@@ -194,17 +282,18 @@ class DashboardTabWidget(QWidget):
             self._add_dash_card(self.lay_aqua, name, format_temp(temp), "🌡️", row_aqua, col_aqua, s_id, history_data=hist)
 
             col_aqua += 1
-            if col_aqua > 2: col_aqua = 0; row_aqua += 1
+            if col_aqua >= num_cols: col_aqua = 0; row_aqua += 1
 
     def _add_dash_card(self, target_layout, title, value, icon, row, col, sensor_id, history_data=None, pwm_load=None, sub_value=None):
         card = QFrame()
-        card.setMaximumWidth(300)
-        # Sostituiamo il colore solido con un grigio vetro semi-trasparente
+        # Riquadro elastico: si adatta tra 260px e 450px
+        card.setMinimumWidth(260)
+        card.setMaximumWidth(450)
         card.setStyleSheet("QFrame { background-color: rgba(30, 30, 30, 160); border-radius: 8px; border: 1px solid #333333; }")
 
         c_layout = QVBoxLayout(card)
-        c_layout.setContentsMargins(10, 8, 10, 8)
-        c_layout.setSpacing(4)
+        c_layout.setContentsMargins(12, 10, 12, 10)
+        c_layout.setSpacing(6)
 
         # Riga Superiore: Icona, Titolo, X per nascondere
         top_layout = QHBoxLayout()
@@ -214,7 +303,7 @@ class DashboardTabWidget(QWidget):
         lbl_icon.setStyleSheet("font-size: 16px; background: transparent; border: none;")
 
         lbl_title = QLabel(title)
-        lbl_title.setStyleSheet("color: #a6adc8; font-size: 11px; font-weight: bold; background: transparent; border: none;")
+        lbl_title.setStyleSheet("color: #a6adc8; font-size: 12px; font-weight: bold; background: transparent; border: none;")
 
         btn_hide = QPushButton("✖")
         btn_hide.setFixedSize(16, 16)
@@ -234,21 +323,21 @@ class DashboardTabWidget(QWidget):
 
         # Valore centrale
         lbl_val = QLabel(value)
-        lbl_val.setStyleSheet("color: #00e5ff; font-size: 18px; font-weight: bold; background: transparent; border: none;")
+        lbl_val.setStyleSheet("color: #00e5ff; font-size: 20px; font-weight: bold; background: transparent; border: none;")
         c_layout.addWidget(lbl_val)
 
         if sub_value:
             lbl_sub = QLabel(sub_value)
-            lbl_sub.setStyleSheet("color: #f9e2af; font-size: 13px; font-weight: bold; background: transparent; border: none;")
+            lbl_sub.setStyleSheet("color: #f9e2af; font-size: 14px; font-weight: bold; background: transparent; border: none;")
             c_layout.addWidget(lbl_sub)
 
-        # Integrazione Sparkline (Storico grafico)
+        # Storico grafico
         if history_data and len(history_data) > 1:
             sparkline = SparklineWidget()
             sparkline.update_data(history_data)
             c_layout.addWidget(sparkline)
 
-        # Integrazione Fill Bar (Carico ventole)
+        # Carico ventole
         if pwm_load is not None:
             fill_bar = PWMFillBar()
             fill_bar.update_value(pwm_load)
@@ -319,7 +408,7 @@ class SecurityTabWidget(QWidget):
         layout = QVBoxLayout(self)
 
         lbl_title = QLabel(f"\u2622\uFE0E {T('sec_title')}")
-        lbl_title.setStyleSheet("font-size: 20px; color: #ff3333; font-weight: bold; margin-bottom: 10px;")
+        lbl_title.setStyleSheet("font-size: 24px; color: #ff3333; font-weight: bold; margin-bottom: 10px;")
         layout.addWidget(lbl_title)
 
         info_txt = QLabel(T("sec_info"))
@@ -335,9 +424,22 @@ class SecurityTabWidget(QWidget):
         sec_layout = QVBoxLayout(container)
         layout.addWidget(scroll)
 
+        # ---------------------------------------------------------
+        # 1. TITOLO SEZIONE 12V
+        # ---------------------------------------------------------
+        lbl_12v = QLabel(f"⚡ {T('dash_12v_out')}")
+        lbl_12v.setStyleSheet("font-size: 16px; color: #cdd6f4; font-weight: bold; margin-top: 5px; margin-bottom: 5px;")
+        sec_layout.addWidget(lbl_12v)
+
         for i in range(1, 5):
             ch_name = global_config["channels_names"].get(str(i), f"{T('channel')} {i}")
-            group = QGroupBox(f"{ch_name}")
+
+            lbl_ch = QLabel(ch_name)
+            lbl_ch.setStyleSheet("font-size: 14px; color: #a6adc8; font-weight: bold; margin-top: 10px;")
+            sec_layout.addWidget(lbl_ch)
+
+            group = QGroupBox()
+            group.setStyleSheet("QGroupBox { margin-top: 5px; padding-top: 5px; }")
             glayout = QFormLayout(group)
 
             box_delay_alarm = QHBoxLayout()
@@ -349,6 +451,7 @@ class SecurityTabWidget(QWidget):
             box_delay_alarm.addWidget(spin_delay_alarm)
             box_delay_alarm.addStretch()
             glayout.addRow("", box_delay_alarm)
+
             box_rpm = QHBoxLayout()
             chk_rpm = QCheckBox(T("sec_rpm"))
             spin_rpm = QSpinBox()
@@ -379,7 +482,6 @@ class SecurityTabWidget(QWidget):
             box_power.addStretch()
             glayout.addRow("", box_power)
 
-            # --- NUOVO: BOX VOLTAGGIO ---
             box_volt = QHBoxLayout()
             chk_volt = QCheckBox(T("sec_volt"))
             spin_volt = QDoubleSpinBox()
@@ -412,7 +514,64 @@ class SecurityTabWidget(QWidget):
             }
             sec_layout.addWidget(group)
 
-        action_group = QGroupBox(T("sec_global"))
+        # ---------------------------------------------------------
+        # 2. TITOLO SEZIONE FLUSSI
+        # ---------------------------------------------------------
+        lbl_flow = QLabel(f"🌀 {T('hw_flow_sensors_title')}")
+        lbl_flow.setStyleSheet("font-size: 16px; color: #cdd6f4; font-weight: bold; margin-top: 15px; margin-bottom: 5px;")
+        sec_layout.addWidget(lbl_flow)
+
+        self.sec_flows = {}
+        for i in range(1, 3):
+            lbl_fl = QLabel(T("hw_flow_sensor_num").format(i=i))
+            lbl_fl.setStyleSheet("font-size: 14px; color: #a6adc8; font-weight: bold; margin-top: 10px;")
+            sec_layout.addWidget(lbl_fl)
+
+            group_flow = QGroupBox()
+            group_flow.setStyleSheet("QGroupBox { margin-top: 5px; padding-top: 5px; }")
+            flayout = QFormLayout(group_flow)
+
+            box_delay_flow = QHBoxLayout()
+            lbl_delay_flow = QLabel(T("sec_delay_alarm"))
+            spin_delay_flow = QSpinBox()
+            spin_delay_flow.setRange(0, 60)
+            spin_delay_flow.setSuffix(" s")
+            box_delay_flow.addWidget(lbl_delay_flow)
+            box_delay_flow.addWidget(spin_delay_flow)
+            box_delay_flow.addStretch()
+            flayout.addRow("", box_delay_flow)
+
+            box_flow_alarm = QHBoxLayout()
+            chk_flow_alarm = QCheckBox(T("sec_flow_alarm"))
+            spin_flow_alarm = QDoubleSpinBox()
+            spin_flow_alarm.setRange(0.0, 500.0)
+            spin_flow_alarm.setDecimals(1)
+            spin_flow_alarm.setSuffix(" L/h")
+            box_flow_alarm.addWidget(chk_flow_alarm)
+            box_flow_alarm.addWidget(spin_flow_alarm)
+            box_flow_alarm.addStretch()
+            flayout.addRow("", box_flow_alarm)
+
+            chk_flow_alarm.toggled.connect(self.set_dirty)
+            spin_flow_alarm.valueChanged.connect(self.set_dirty)
+            spin_delay_flow.valueChanged.connect(self.set_dirty)
+
+            self.sec_flows[str(i)] = {
+                "chk_flow": chk_flow_alarm,
+                "spin_flow": spin_flow_alarm,
+                "spin_delay_flow": spin_delay_flow
+            }
+            sec_layout.addWidget(group_flow)
+
+        # ---------------------------------------------------------
+        # 3. AZIONI GLOBALI
+        # ---------------------------------------------------------
+        lbl_global = QLabel(T("sec_global"))
+        lbl_global.setStyleSheet("font-size: 16px; color: #ff3333; font-weight: bold; margin-top: 15px; margin-bottom: 5px;")
+        layout.addWidget(lbl_global)
+
+        action_group = QGroupBox()
+        action_group.setStyleSheet("QGroupBox { margin-top: 5px; padding-top: 5px; }")
         alayout = QVBoxLayout(action_group)
 
         self.chk_sound = QCheckBox(T("sec_sound"))
@@ -483,7 +642,8 @@ class SecurityTabWidget(QWidget):
         self.btn_save_sec.setEnabled(True)
 
     def save_security(self):
-        sec_config = {"channels": {}, "actions": {}}
+        sec_config = {"channels": {}, "flows": {}, "actions": {}}
+
         for ch_id, widgets in self.sec_channels.items():
             sec_config["channels"][ch_id] = {
                 "rpm_en": widgets["chk_rpm"].isChecked(),
@@ -496,6 +656,14 @@ class SecurityTabWidget(QWidget):
                 "volt_val": widgets["spin_volt"].value(),
                 "delay_val": widgets["spin_delay_alarm"].value()
             }
+
+        for f_id, widgets in self.sec_flows.items():
+            sec_config["flows"][f_id] = {
+                "flow_en": widgets["chk_flow"].isChecked(),
+                "flow_val": widgets["spin_flow"].value(),
+                "delay_val": widgets["spin_delay_flow"].value()
+            }
+
         sec_config["actions"] = {
             "sound_en": self.chk_sound.isChecked(),
             "osd_en": self.chk_osd_alert.isChecked(),
@@ -504,13 +672,23 @@ class SecurityTabWidget(QWidget):
             "shutdown_en": self.chk_shutdown.isChecked(),
             "delay_val": self.spin_delay.value()
         }
+
         global_config["security"] = sec_config
         save_config(global_config)
         self.btn_save_sec.setEnabled(False)
-        QMessageBox.information(self, T("sidebar_sec"), T("sec_saved_msg"))
+
+        self.btn_save_sec.setText(T("saved_success"))
+        self.btn_save_sec.setStyleSheet("background-color: #00e676 !important; color: #11111b !important; font-weight: bold;")
+        QTimer.singleShot(2000, self.reset_save_btn_sec)
+
+    def reset_save_btn_sec(self):
+        self.btn_save_sec.setText(T("sec_save"))
+        self.btn_save_sec.setStyleSheet("")
+
 
     def load_security(self):
         sec_config = global_config.get("security", {})
+
         ch_config = sec_config.get("channels", {})
         for ch_id, widgets in self.sec_channels.items():
             saved = ch_config.get(ch_id, {})
@@ -520,23 +698,28 @@ class SecurityTabWidget(QWidget):
             widgets["spin_temp"].blockSignals(True); widgets["spin_temp"].setValue(saved.get("temp_val", 55)); widgets["spin_temp"].blockSignals(False)
             widgets["chk_power"].blockSignals(True); widgets["chk_power"].setChecked(saved.get("power_en", False)); widgets["chk_power"].blockSignals(False)
             widgets["spin_power"].blockSignals(True); widgets["spin_power"].setValue(saved.get("power_val", 20)); widgets["spin_power"].blockSignals(False)
-            widgets["spin_delay_alarm"].blockSignals(True)
-            widgets["spin_delay_alarm"].setValue(saved.get("delay_val", 3))
-            widgets["spin_delay_alarm"].blockSignals(False)
+            widgets["spin_delay_alarm"].blockSignals(True); widgets["spin_delay_alarm"].setValue(saved.get("delay_val", 3)); widgets["spin_delay_alarm"].blockSignals(False)
             widgets["chk_volt"].blockSignals(True); widgets["chk_volt"].setChecked(saved.get("volt_en", False)); widgets["chk_volt"].blockSignals(False)
             widgets["spin_volt"].blockSignals(True); widgets["spin_volt"].setValue(saved.get("volt_val", 0.0)); widgets["spin_volt"].blockSignals(False)
+
+        flows_config = sec_config.get("flows", {})
+        for f_id, widgets in self.sec_flows.items():
+            saved_f = flows_config.get(f_id, {})
+            widgets["chk_flow"].blockSignals(True); widgets["chk_flow"].setChecked(saved_f.get("flow_en", False)); widgets["chk_flow"].blockSignals(False)
+            widgets["spin_flow"].blockSignals(True); widgets["spin_flow"].setValue(saved_f.get("flow_val", 40.0)); widgets["spin_flow"].blockSignals(False)
+            widgets["spin_delay_flow"].blockSignals(True); widgets["spin_delay_flow"].setValue(saved_f.get("delay_val", 5)); widgets["spin_delay_flow"].blockSignals(False)
 
         actions = sec_config.get("actions", {})
         self.chk_sound.blockSignals(True); self.chk_sound.setChecked(actions.get("sound_en", False)); self.chk_sound.blockSignals(False)
         self.chk_osd_alert.blockSignals(True); self.chk_osd_alert.setChecked(actions.get("osd_en", True)); self.chk_osd_alert.blockSignals(False)
         self.chk_cmd.blockSignals(True); self.chk_cmd.setChecked(actions.get("cmd_en", False)); self.chk_cmd.blockSignals(False)
         self.txt_cmd.blockSignals(True); self.txt_cmd.setText(actions.get("cmd_val", "")); self.txt_cmd.blockSignals(False)
-
         self.chk_shutdown.blockSignals(True); self.chk_shutdown.setChecked(actions.get("shutdown_en", False)); self.chk_shutdown.blockSignals(False)
         self.spin_delay.blockSignals(True); self.spin_delay.setValue(actions.get("delay_val", 0)); self.spin_delay.blockSignals(False)
 
         self.update_delay_visibility()
         self.btn_save_sec.setEnabled(False)
+
 
 class OSDConfigTabWidget(QWidget):
     """Componente per l'interfaccia di personalizzazione e configurazione dell'overlay OSD."""
@@ -546,7 +729,7 @@ class OSDConfigTabWidget(QWidget):
         layout = QVBoxLayout(self)
 
         lbl_title = QLabel(f"🖥️ {T('osd_title')}")
-        lbl_title.setStyleSheet("font-size: 20px; color: #00e5ff; font-weight: bold; margin-bottom: 10px;")
+        lbl_title.setStyleSheet("font-size: 24px; color: #00e5ff; font-weight: bold; margin-bottom: 10px;")
         layout.addWidget(lbl_title)
 
         info_txt = QLabel(T("osd_info"))
@@ -554,7 +737,8 @@ class OSDConfigTabWidget(QWidget):
         info_txt.setStyleSheet("color: #a6adc8; margin-bottom: 5px; font-size: 13px;")
         layout.addWidget(info_txt)
 
-        global_group = QGroupBox(T("osd_global"))
+        global_group = QGroupBox()
+        global_group.setStyleSheet("QGroupBox { margin-top: 5px; padding-top: 5px; }")
         g_layout = QHBoxLayout(global_group)
 
         self.main_window.chk_osd = QCheckBox(T("osd_show"))
@@ -575,7 +759,12 @@ class OSDConfigTabWidget(QWidget):
         g_layout.addStretch()
         layout.addWidget(global_group)
 
-        aesthetic_group = QGroupBox(T("osd_aesthetic"))
+        lbl_aesthetic = QLabel(T("osd_aesthetic"))
+        lbl_aesthetic.setStyleSheet("font-size: 16px; color: #cdd6f4; font-weight: bold; margin-top: 15px; margin-bottom: 5px;")
+        layout.addWidget(lbl_aesthetic)
+
+        aesthetic_group = QGroupBox()
+        aesthetic_group.setStyleSheet("QGroupBox { margin-top: 5px; padding-top: 5px; }")
         a_layout = QFormLayout(aesthetic_group)
 
         opacity_layout = QHBoxLayout()
@@ -639,7 +828,12 @@ class OSDConfigTabWidget(QWidget):
         a_layout.addRow(QLabel(T("osd_font_style")), font_layout)
         layout.addWidget(aesthetic_group)
 
-        sensors_group = QGroupBox(T("osd_sensors_group"))
+        lbl_sensors = QLabel(T("osd_sensors_group"))
+        lbl_sensors.setStyleSheet("font-size: 16px; color: #cdd6f4; font-weight: bold; margin-top: 15px; margin-bottom: 5px;")
+        layout.addWidget(lbl_sensors)
+
+        sensors_group = QGroupBox()
+        sensors_group.setStyleSheet("QGroupBox { margin-top: 5px; padding-top: 5px; }")
         s_layout = QVBoxLayout(sensors_group)
         s_layout.setContentsMargins(0, 5, 0, 0)
 
@@ -651,10 +845,18 @@ class OSDConfigTabWidget(QWidget):
 
         self.osd_items = {}
 
+        # Canali 12V
         for i in range(1, 5):
             comp_id = f"ch_{i}"
             desc = f"Aquaero: {T('channel')} {i}"
             placeholder = f"{T('channel')} {i}"
+            self._add_sensor_row(list_layout, comp_id, desc, placeholder)
+
+        # Flussi aggiunti qui come richiesto!
+        for i in range(1, 3):
+            comp_id = f"flow_{i}"
+            desc = f"Aquaero: {T('hw_flow_sensor_num').format(i=i)}"
+            placeholder = T('hw_flow_sensor_num').format(i=i)
             self._add_sensor_row(list_layout, comp_id, desc, placeholder)
 
         sys_sensors = self.main_window.engine.get_available_system_sensors()
@@ -694,7 +896,7 @@ class OSDConfigTabWidget(QWidget):
     def update_aesthetic(self):
         self.set_dirty()
         opacity_percent = self.slider_opacity.value()
-        real_opacity = int(opacity_percent * 2.55) # Conversione per il back-end
+        real_opacity = int(opacity_percent * 2.55)
         max_rows = self.spin_max_rows.value()
         self.lbl_opacity_val.setText(f"{opacity_percent} %")
         self.main_window.osd_window.set_customization(opacity=real_opacity, max_rows=max_rows)
@@ -751,7 +953,14 @@ class OSDConfigTabWidget(QWidget):
         global_config["osd_config"] = conf
         save_config(global_config)
         self.btn_save.setEnabled(False)
-        QMessageBox.information(self, "OSD", T("osd_saved_msg"))
+
+        self.btn_save.setText(T("saved_success"))
+        self.btn_save.setStyleSheet("background-color: #00e676 !important; color: #11111b !important; font-weight: bold")
+        QTimer.singleShot(2000, self.reset_save_btn)
+
+    def reset_save_btn(self):
+        self.btn_save.setText(T("osd_save"))
+        self.btn_save.setStyleSheet("")
 
     def load_osd_config(self):
         conf = global_config.get("osd_config", {})
@@ -800,11 +1009,16 @@ class SettingsTabWidget(QWidget):
         layout = QVBoxLayout(self)
 
         lbl_title = QLabel(f"⚙️ {T('tab_settings')}")
-        lbl_title.setStyleSheet("font-size: 22px; color: #00e5ff; font-weight: bold; margin-bottom: 10px;")
+        lbl_title.setStyleSheet("font-size: 24px; color: #00e5ff; font-weight: bold; margin-bottom: 10px;")
         layout.addWidget(lbl_title)
 
+        lbl_sys_pref = QLabel(T("set_sys_pref"))
+        lbl_sys_pref.setStyleSheet("font-size: 16px; color: #cdd6f4; font-weight: bold; margin-top: 10px; margin-bottom: 5px;")
+        layout.addWidget(lbl_sys_pref)
+
         # GRUPPO SISTEMA
-        group_sys = QGroupBox(T("set_sys_pref"))
+        group_sys = QGroupBox()
+        group_sys.setStyleSheet("QGroupBox { margin-top: 5px; padding-top: 5px; }")
         sys_layout = QVBoxLayout(group_sys)
 
         # Lingua
@@ -818,14 +1032,14 @@ class SettingsTabWidget(QWidget):
         lang_row.addStretch()
         sys_layout.addLayout(lang_row)
 
-        # --- AGGIUNTA SLIDER OPACITÀ ---
+        # Opacità Interfaccia
         sys_layout.addSpacing(15)
         opac_row = QHBoxLayout()
         lbl_opac = QLabel(T("ui_opacity"))
         lbl_opac.setStyleSheet("color: #00e5ff; font-weight: bold;")
 
         self.slider_window_opac = QSlider(Qt.Horizontal)
-        self.slider_window_opac.setRange(15, 100) # Minimo 15% per non far sparire la finestra
+        self.slider_window_opac.setRange(0, 100) # Range Trasparenza Interfaccia
         saved_opac = global_config.get("window_opacity", 180)
         saved_opac_percent = int(saved_opac / 2.55) # Converte in percentuale
         self.slider_window_opac.setValue(saved_opac_percent)
@@ -877,7 +1091,7 @@ class GuideTabWidget(QWidget):
         super().__init__(parent)
         layout = QVBoxLayout(self)
         lbl_title = QLabel(f"📖 {T('tab_guide')}")
-        lbl_title.setStyleSheet("font-size: 22px; color: #00e5ff; font-weight: bold; margin-bottom: 10px;")
+        lbl_title.setStyleSheet("font-size: 24px; color: #00e5ff; font-weight: bold; margin-bottom: 10px;")
         layout.addWidget(lbl_title)
 
         scroll = QScrollArea()
@@ -891,8 +1105,8 @@ class GuideTabWidget(QWidget):
 
         content.setStyleSheet("""
             QLabel {
-                background-color: rgba(30, 30, 30, 160);
-                border: 1px solid #333333;
+                background-color: rgba(35, 38, 41, 225);
+                border: 1px solid rgba(255, 255, 255, 20);
                 border-radius: 8px;
                 padding: 25px;
                 font-size: 14px;
@@ -900,6 +1114,7 @@ class GuideTabWidget(QWidget):
                 color: #e0e0e0;
             }
         """)
+
         scroll.setWidget(content)
         layout.addWidget(scroll)
 
@@ -907,11 +1122,11 @@ class HardwareTabWidget(QWidget):
     """Tab per la configurazione fisica dei canali: Potenza Minima e Avvio Rapido."""
     def __init__(self, main_window, parent=None):
         super().__init__(parent)
-        self.main_window = main_window # <--- Memorizza il riferimento nativo
+        self.main_window = main_window
         layout = QVBoxLayout(self)
 
         lbl_title = QLabel(f"🔌 {T('tab_hw_channels')}")
-        lbl_title.setStyleSheet("font-size: 22px; color: #00e5ff; font-weight: bold; margin-bottom: 10px;")
+        lbl_title.setStyleSheet("font-size: 24px; color: #00e5ff; font-weight: bold; margin-bottom: 10px;")
         layout.addWidget(lbl_title)
 
         info_txt = QLabel(T("hw_channels_info"))
@@ -928,19 +1143,27 @@ class HardwareTabWidget(QWidget):
 
         self.hw_widgets = {}
 
+        # --- TITOLO SEZIONE 12V ---
+        lbl_12v = QLabel(f"⚡ {T('dash_12v_out')}")
+        lbl_12v.setStyleSheet("font-size: 16px; color: #cdd6f4; font-weight: bold; margin-top: 5px; margin-bottom: 5px;")
+        self.channels_layout.addWidget(lbl_12v)
+
+        self.hw_widgets = {}
+
         for i in range(1, 5):
             ch_name = global_config["channels_names"].get(str(i), f"{T('channel')} {i}")
-            group = QGroupBox(f"{ch_name}")
-            group.setStyleSheet("QGroupBox { font-weight: bold; color: #cdd6f4; }")
+
+            group = QGroupBox()
+            group.setStyleSheet("QGroupBox { margin-top: 5px; padding-top: 5px; }")
 
             glayout = QFormLayout(group)
-            glayout.setContentsMargins(15, 15, 15, 15)
+            glayout.setContentsMargins(15, 10, 15, 15)
             glayout.setSpacing(15)
 
             # --- 0. Abilitazione Canale ---
             box_enable = QHBoxLayout()
-            chk_enable = QCheckBox(T("hw_enable_ch").format(ch=ch_name))
-            chk_enable.setStyleSheet("color: #00e5ff; font-weight: bold; font-size: 14px;")
+            chk_enable = QCheckBox(ch_name)
+            chk_enable.setStyleSheet("color: #00e5ff; font-weight: bold; font-size: 15px;")
             box_enable.addWidget(chk_enable)
             box_enable.addStretch()
 
@@ -986,7 +1209,7 @@ class HardwareTabWidget(QWidget):
             box_boost.addStretch()
 
             # Assemblaggio in ordine esatto
-            glayout.addRow("", box_enable)
+            glayout.addRow(box_enable)
             glayout.addRow("", box_mode)
             glayout.addRow(T("hw_min_power"), box_min_power)
             glayout.addRow("", box_boost)
@@ -1008,6 +1231,105 @@ class HardwareTabWidget(QWidget):
             }
 
             self.channels_layout.addWidget(group)
+
+        # --- TITOLO SEZIONE FLUSSI ---
+        lbl_flow = QLabel(f"🌀 {T('hw_flow_sensors_title')}")
+        lbl_flow.setStyleSheet("font-size: 16px; color: #cdd6f4; font-weight: bold; margin-top: 15px; margin-bottom: 5px;")
+        self.channels_layout.addWidget(lbl_flow)
+
+        self.flow_widgets = {}
+        for i in range(1, 3):
+            group_flow = QGroupBox()
+            group_flow.setStyleSheet("QGroupBox { margin-top: 5px; padding-top: 5px; }")
+
+            flayout = QFormLayout(group_flow)
+            flayout.setContentsMargins(15, 10, 15, 15)
+            flayout.setSpacing(10)
+
+            # Riga 1: Spunta abilitazione
+            box_flow_en = QHBoxLayout()
+            chk_flow_en = QCheckBox(T("hw_flow_sensor_num").format(i=i))
+            chk_flow_en.setStyleSheet("color: #cdd6f4; font-weight: bold; font-size: 15px;")
+            box_flow_en.addWidget(chk_flow_en)
+            box_flow_en.addStretch()
+
+            # Variabili Interfaccia
+            combo_type = QComboBox()
+            combo_type.addItems(list(FLOW_PRESETS.keys()))
+            combo_type.setEnabled(False)
+
+            combo_fluid = QComboBox()
+            combo_fluid.addItems(["Water", "DP Ultra"])
+            combo_fluid.setEnabled(False)
+
+            combo_fitting = QComboBox()
+            combo_fitting.setEnabled(False)
+
+            spin_calib = QSpinBox()
+            spin_calib.setRange(1, 3000)
+            spin_calib.setSuffix(" imp/l")
+            spin_calib.setEnabled(False)
+
+            def update_ui_logic(c_type=combo_type, c_fluid=combo_fluid, c_fit=combo_fitting, spin=spin_calib):
+                sensor = c_type.currentText()
+                if sensor == "User defined":
+                    c_fluid.setEnabled(False)
+                    c_fit.setEnabled(False)
+                    spin.setEnabled(True)
+                else:
+                    spin.setEnabled(False)
+                    c_fluid.setEnabled(True)
+                    fluid = c_fluid.currentText()
+
+                    fittings = list(FLOW_PRESETS[sensor].get(fluid, {}).keys())
+                    if "N/A" in fittings or not fittings:
+                        c_fit.setEnabled(False)
+                        c_fit.blockSignals(True)
+                        c_fit.clear()
+                        c_fit.addItem("N/A")
+                        c_fit.blockSignals(False)
+                        val = FLOW_PRESETS[sensor][fluid].get("N/A", 150)
+                    else:
+                        c_fit.setEnabled(True)
+                        current_fit = c_fit.currentText()
+                        c_fit.blockSignals(True)
+                        c_fit.clear()
+                        c_fit.addItems(fittings)
+                        if current_fit in fittings:
+                            c_fit.setCurrentText(current_fit)
+                        c_fit.blockSignals(False)
+                        val = FLOW_PRESETS[sensor][fluid].get(c_fit.currentText(), 150)
+
+                    spin.setValue(val)
+
+            combo_type.currentTextChanged.connect(lambda text, t=combo_type: update_ui_logic(c_type=t))
+            combo_fluid.currentTextChanged.connect(lambda text, t=combo_type: update_ui_logic(c_type=t))
+            combo_fitting.currentTextChanged.connect(lambda text, t=combo_type: update_ui_logic(c_type=t))
+
+            chk_flow_en.toggled.connect(combo_type.setEnabled)
+            chk_flow_en.toggled.connect(lambda checked, t=combo_type: update_ui_logic(c_type=t) if checked else None)
+
+            chk_flow_en.toggled.connect(self.set_dirty)
+            combo_type.currentTextChanged.connect(self.set_dirty)
+            combo_fluid.currentTextChanged.connect(self.set_dirty)
+            combo_fitting.currentTextChanged.connect(self.set_dirty)
+            spin_calib.valueChanged.connect(self.set_dirty)
+
+            flayout.addRow(box_flow_en)
+            flayout.addRow(T("hw_flow_type"), combo_type)
+            flayout.addRow(T("hw_flow_fluid"), combo_fluid)
+            flayout.addRow(T("hw_flow_fitting"), combo_fitting)
+            flayout.addRow(T("hw_flow_calib"), spin_calib)
+
+            self.flow_widgets[str(i)] = {
+                "chk_enable": chk_flow_en,
+                "combo_type": combo_type,
+                "combo_fluid": combo_fluid,
+                "combo_fitting": combo_fitting,
+                "spin_calib": spin_calib,
+                "update_logic": update_ui_logic
+            }
+            self.channels_layout.addWidget(group_flow)
 
         self.channels_layout.addStretch()
         layout.addWidget(scroll)
@@ -1040,17 +1362,41 @@ class HardwareTabWidget(QWidget):
                 if hasattr(self.main_window, 'engine'):
                     self.main_window.engine.set_channel_mode_hid(int(ch_id), selected_mode)
             except Exception as e:
-                print(f"Errore USB HID: {e}")
+                print(f"Errore USB HID 12V: {e}")
 
         global_config["hardware_channels"] = hw_config
+
+        flow_config = global_config.get("flow_sensors", {})
+        for flow_id, widgets in self.flow_widgets.items():
+            calib_val = widgets["spin_calib"].value()
+            flow_config[flow_id] = {
+                "enabled": widgets["chk_enable"].isChecked(),
+                "sensor_type": widgets["combo_type"].currentText(),
+                "fluid": widgets["combo_fluid"].currentText(),
+                "fitting": widgets["combo_fitting"].currentText(),
+                "impulses": calib_val
+            }
+            try:
+                if widgets["chk_enable"].isChecked() and hasattr(self.main_window, 'engine'):
+                    self.main_window.engine.set_flow_calibration_hid(int(flow_id), calib_val)
+            except Exception as e:
+                print(f"Errore USB HID Flusso: {e}")
+
+        global_config["flow_sensors"] = flow_config
         save_config(global_config)
 
         self.btn_save_hw.setEnabled(False)
-        QMessageBox.information(self, T("tab_hw_channels"), T("hw_saved_msg"))
+
+        self.btn_save_hw.setText(T("saved_success"))
+        self.btn_save_hw.setStyleSheet("background-color: #00e676 !important; color: #11111b !important; font-weight: bold;")
+        QTimer.singleShot(2000, self.reset_save_btn_hw)
+
+    def reset_save_btn_hw(self):
+        self.btn_save_hw.setText(T("hw_save_btn"))
+        self.btn_save_hw.setStyleSheet("")
 
     def load_hardware_config(self):
         hw_config = global_config.get("hardware_channels", {})
-
         for ch_id, widgets in self.hw_widgets.items():
             saved = hw_config.get(ch_id, {})
 
@@ -1081,3 +1427,37 @@ class HardwareTabWidget(QWidget):
             widgets["spin_boost_time"].setEnabled(boost)
             widgets["spin_boost_time"].blockSignals(False)
 
+        flow_config = global_config.get("flow_sensors", {})
+        for flow_id, widgets in self.flow_widgets.items():
+            saved_flow = flow_config.get(flow_id, {})
+
+            en = saved_flow.get("enabled", False)
+            widgets["chk_enable"].blockSignals(True)
+            widgets["chk_enable"].setChecked(en)
+            widgets["chk_enable"].blockSignals(False)
+
+            s_type = saved_flow.get("sensor_type", "User defined")
+            widgets["combo_type"].blockSignals(True)
+            widgets["combo_type"].setCurrentText(s_type)
+            widgets["combo_type"].blockSignals(False)
+
+            fluid = saved_flow.get("fluid", "Water")
+            widgets["combo_fluid"].blockSignals(True)
+            widgets["combo_fluid"].setCurrentText(fluid)
+            widgets["combo_fluid"].blockSignals(False)
+
+            fit = saved_flow.get("fitting", "N/A")
+            if fit != "N/A":
+                widgets["combo_fitting"].blockSignals(True)
+                widgets["combo_fitting"].addItem(fit)
+                widgets["combo_fitting"].setCurrentText(fit)
+                widgets["combo_fitting"].blockSignals(False)
+
+            calib = saved_flow.get("impulses", 150)
+            widgets["spin_calib"].blockSignals(True)
+            widgets["spin_calib"].setValue(calib)
+            widgets["spin_calib"].blockSignals(False)
+
+            widgets["combo_type"].setEnabled(en)
+            if en:
+                widgets["update_logic"]()

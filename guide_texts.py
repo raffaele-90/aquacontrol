@@ -19,43 +19,41 @@ from config_manager import global_config
 GUIDE_TRANSLATIONS = {
 "it": """
         <h2 style="color: #cdd6f4;">Guida alle funzioni avanzate del programma</h2>
-        <p style="color: #a6adc8; margin-bottom: 20px;">Questa guida illustra il funzionamento delle logiche avanzate del software, suddivise in sezioni.</p>
+        <p style="color: #a6adc8; margin-bottom: 16px;">Questa guida illustra il funzionamento delle logiche avanzate del software, suddivise in sezioni.</p>
 
-        <h3 style="color: #cba6f7; background-color: rgba(203, 166, 247, 0.1); padding: 5px 10px; border-radius: 4px;">🎛️ Gestione Curve</h3>
+        <h3 style="color: #00e5ff; background-color: rgba(0, 229, 255, 0.1); padding: 5px 10px; border-radius: 4px;">🎛️ Gestione Curve</h3>
 
         <h4 style="color: #00e5ff; margin-top: 15px;">Modalità PID</h4>
         <p>A differenza della modalità automatica, la modalità PID utilizza un algoritmo che adatta in maniera dinamica la potenza per mantenere il sensore di riferimento scelto alla temperatura impostata (<b>Obiettivo</b>), in base al carico del sistema in tempo reale.</p>
-        <p>Il software offre tre profili preimpostati (<b>Lento, Normale, Veloce</b>). Per gli utenti esperti, la modalità <b>Manuale</b> permette di definire i tre parametri matematici in modo da adattare l'algoritmo alle specifiche caratteristiche del proprio impianto:</p>
+        <p>Il software offers tre profili preimpostati (<b>Lento, Normale, Veloce</b>). Per gli utenti esperti, la modalità <b>Manuale</b> permette di definire i tre parametri matematici in modo da adattare l'algoritmo alle specifiche caratteristiche del proprio impianto:</p>
 
         <ul style="margin-top: 5px; margin-bottom: 15px;">
-            <li style="margin-bottom: 8px;"><b style="color: #cba6f7;">Proporzionale (P):</b> Regola la sensibilità di base alle variazioni di temperatura. Agisce in risposta alla differenza istantanea tra la temperatura rilevata e l'<b>Obiettivo</b>. Un valore troppo elevato rende l’algoritmo eccessivamente reattivo, innescando continue oscillazioni nel regime di rotazione delle ventole. Incrementalo a step di <b>0.5</b>.</li>
-            <li style="margin-bottom: 8px;"><b style="color: #cba6f7;">Integrale (I):</b> Gestisce la compensazione cumulativa sul lungo periodo. Analizza il tempo trascorso fuori dall'<b>Obiettivo</b> e accumula la correzione necessaria per far convergere le ventole al regime di rotazione necessario (es. 60% fisso) per mantenere stabilmente la temperatura del sensore. A causa dell'elevata inerzia termica dell'acqua, questo valore deve essere mantenuto molto basso. Modificalo a piccoli step di <b>0.01</b>.</li>
-            <li style="margin-bottom: 8px;"><b style="color: #cba6f7;">Derivativo (D):</b> Applica uno smorzamento dinamico in base alla velocità con cui cambia la temperatura. <b>Nei sistemi a liquido si consiglia di mantenerlo vicino allo 0.</b> Poiché l'acqua si scalda in modo graduale, un valore eccessivamente alto porterebbe a improvvisi e ingiustificati picchi di rotazione in risposta a minime fluttuazioni di lettura del sensore.</li>
+            <li style="margin-bottom: 8px;"><b style="color: #00e5ff;">Proporzionale (P):</b> Regola la sensibilità di base alle variazioni di temperatura. Agisce in risposta alla differenza istantanea tra la temperatura rilevata e l'<b>Obiettivo</b>. Un valore troppo elevato rende l’algoritmo eccessivamente reattivo, innescando continue oscillazioni nel regime di rotazione delle ventole. Incrementalo a step di <b>0.5</b>.</li>
+            <li style="margin-bottom: 8px;"><b style="color: #00e5ff;">Integrale (I):</b> Gestisce la compensazione cumulativa sul lungo periodo. Analizza il tempo trascorso fuori dall'<b>Obiettivo</b> e accumula la correction necessaria per far convergere le ventole al regime di rotazione necessario (es. 60% fisso) per mantenere stabilmente la temperatura del sensore. A causa dell'elevata inerzia termica dell'acqua, questo valore deve essere mantenuto molto basso. Modificalo a piccoli step di <b>0.01</b>.</li>
+            <li style="margin-bottom: 8px;"><b style="color: #00e5ff;">Derivativo (D):</b> Applica uno smorzamento dinamico in base alla velocità con cui cambia la temperatura. <b>Nei sistemi a liquido si consiglia di mantenerlo vicino allo 0.</b> Poiché l'acqua si scalda in modo graduale, un valore eccessivamente alto porterebbe a improvvisi e ingiustificati picchi di rotazione in risposta a minime fluttuazioni di lettura del sensore.</li>
         </ul>
 
-        <div style="background-color: #1e1e2e; padding: 10px; border-left: 4px solid #00e5ff; margin-bottom: 15px;">
-            <p style="margin-top: 0;"><b>💡 Valori di Riferimento (Preset del software)</b><br>
-            Se vuoi creare una curva manuale, utilizza questi valori come punto di partenza per orientarti:</p>
-            <ul style="margin-bottom: 0;">
-                <li><b>Lento:</b> P = 3.0 | I = 0.05 | D = 0.1</li>
-                <li><b>Normale:</b> P = 5.0 | I = 0.08 | D = 0.3</li>
-                <li><b>Veloce:</b> P = 8.0 | I = 0.10 | D = 0.5</li>
-            </ul>
+        <div style="margin-top: 15px; margin-bottom: 15px;">
+            <h4 style="color: #00e5ff; margin-bottom: 5px;">💡 Valori di Riferimento (Preset del Software)</h4>
+            <p style="margin-top: 0; margin-bottom: 10px;">Se si desidera creare una curva manuale, è possibile utilizzare questi parametri come punto di partenza orientativo:</p>
+            <div style="color: #cdd6f4; background-color: rgba(0, 229, 255, 0.1); padding: 8px; border-left: 4px solid #00e5ff; margin-bottom: 8px; font-size: 13px; font-family: monospace;"><b>Lento:</b> P = 3.0 | I = 0.05 | D = 0.1</div>
+            <div style="color: #cdd6f4; background-color: rgba(0, 229, 255, 0.1); padding: 8px; border-left: 4px solid #00e5ff; margin-bottom: 8px; font-size: 13px; font-family: monospace;"><b>Normale:</b> P = 5.0 | I = 0.08 | D = 0.3</div>
+            <div style="color: #cdd6f4; background-color: rgba(0, 229, 255, 0.1); padding: 8px; border-left: 4px solid #00e5ff; margin-bottom: 8px; font-size: 13px; font-family: monospace;"><b>Veloce:</b> P = 8.0 | I = 0.10 | D = 0.5</div>
         </div>
 
         <h4 style="color: #00e5ff;">Sensore Virtuale (ΔT)</h4>
         <p>Attivando il <b>Sensore Virtuale (ΔT)</b>, AquaControl calcola costantemente la differenza tra il sensore principale impostato e un secondo sensore di riferimento: <br><code style="background-color: #1e1e2e; padding: 2px 5px;">[Principale] - [Riferimento] = ΔT</code></p>
         <p><b>Scenario di utilizzo tipico:</b><br>
         In un sistema di raffreddamento a liquido convenzionale, la temperatura dei componenti non può mai scendere sotto la temperatura ambientale. Una curva impostata per tenere il liquido a 35°C funzionerà in inverno, ma in estate (con Tamb > 35°C) costringerà le ventole al 100% per raggiungere una temperatura fisicamente impossibile.</p>
-        <p>Sottraendo la <i>Temperatura dell'Aria</i> (riferimento) alla <i>Temperatura del Liquido</i> (principale), è possibile impostare un <b>Obiettivo</b> PID o una curva basata su un <b>ΔT di 10°C</b>. In questo modo, il sistema manterrà l'acqua a 30°C in inverno (20°C ambiente + 10) e a 40°C in estate (30°C ambiente + 10).</p>
+        <p>Sottraendo la <i>Temperatura dell'Aria</i> (riferimento) alla <i>Temperatura del Liquido</i> (principale), è possibile impostare un <b>Obiettivo</b> PID o una curva basata su un <b>ΔT di 10°C</b>. In questo modo, il sistema manterrà l'acqua a 30°C in inverno (20°C ambiente + 10) and a 40°C in estate (30°C ambiente + 10).</p>
 
         <h4 style="color: #00e5ff;">Cambio Profilo Automatico (Auto-Switch)</h4>
-        <p>Questa funzione permette ad AquaControl di caricare un profilo specifico quando avvii determinati programmi, per poi ripristinare il profilo predefinito alla loro chiusura.</p>
+        <p>Questa funzione permette ad AquaControl di caricare un profil specifico quando avvii determinati programmi, per poi ripristinare il profilo predefinito alla loro chiusura.</p>
         <p>Essendo un software nativo Linux, non è necessario cercare il percorso dell’eseguibile. È sufficiente digitare il <b>nome del programma</b> così come verrebbe digitato nel terminale di sistema (ad esempio <code>steam</code>, <code>firefox</code>, <code>blender</code>) per garantire che il software rilevi l'apertura del programma.</p>
 
         <hr style="border: 1px solid #313244; margin: 25px 0;">
 
-        <h3 style="color: #cba6f7; background-color: rgba(203, 166, 247, 0.1); padding: 5px 10px; border-radius: 4px;">🔌 Configurazione Hardware</h3>
+        <h3 style="color: #00e5ff; background-color: rgba(0, 229, 255, 0.1); padding: 5px 10px; border-radius: 4px;">🔌 Configurazione Hardware</h3>
 
         <h4 style="color: #00e5ff; margin-top: 15px;">Potenza Minima (Prevenzione Stallo)</h4>
         <p>I motori delle ventole e delle pompe hanno un limite fisico sotto il quale non riescono a girare. Esempio: impostando questo limite al 25%, il software ricalcolerà l'intera curva in modo che lo 0% del grafico corrisponda al 25% inviato al motore. Al di sotto del valore minimo, il canale toglierà del tutto l'alimentazione, spegnendo la periferica ed evitando così fastidiosi ronzii elettrici o danni al motore dovuti allo stallo prolungato.</p>
@@ -65,7 +63,7 @@ GUIDE_TRANSLATIONS = {
 
         <hr style="border: 1px solid #313244; margin: 25px 0;">
 
-        <h3 style="color: #ff3333; background-color: rgba(255, 51, 51, 0.1); padding: 5px 10px; border-radius: 4px;">☢️ Impostazioni di Sicurezza (Fail-Safe)</h3>
+        <h3 style="color: #ff3333; background-color: rgba(255, 51, 51, 0.1); padding: 5px 10px; border-radius: 4px;">☢️ Impostazioni di Sicurezza</h3>
         <p>Il sistema di sicurezza interviene automaticamente per prevenire danni all'hardware. Il sistema di emergenza ha due impostazioni separate, che hanno scopi specifici:</p>
 
         <p><b>1. Ritardo Allarme (Sensibilità)</b><br>
@@ -77,9 +75,9 @@ GUIDE_TRANSLATIONS = {
 
 "en": """
         <h2 style="color: #cdd6f4;">Guide to the program's advanced features</h2>
-        <p style="color: #a6adc8; margin-bottom: 20px;">This guide explains the operation of the software's advanced logic, divided into sections.</p>
+        <p style="color: #a6adc8; margin-bottom: 16px;">This guide explains the operation of the software's advanced logic, divided into sections.</p>
 
-        <h3 style="color: #cba6f7; background-color: rgba(203, 166, 247, 0.1); padding: 5px 10px; border-radius: 4px;">🎛️ Curve Management</h3>
+        <h3 style="color: #00e5ff; background-color: rgba(0, 229, 255, 0.1); padding: 5px 10px; border-radius: 4px;">🎛️ Curve Management</h3>
 
         <h4 style="color: #00e5ff; margin-top: 15px;">PID Mode</h4>
         <p>Unlike automatic mode, PID mode uses an algorithm that dynamically adapts the power to keep the chosen reference sensor at the set temperature (<b>Target</b>), based on the real-time system load.</p>
@@ -91,7 +89,7 @@ GUIDE_TRANSLATIONS = {
             <li style="margin-bottom: 8px;"><b style="color: #cba6f7;">Derivative (D):</b> Applies dynamic dampening based on the speed at which the temperature changes. <b>In liquid systems, it is recommended to keep it close to 0.</b> Since water heats up gradually, an excessively high value would lead to sudden and unjustified rotation spikes in response to minimal sensor reading fluctuations.</li>
         </ul>
 
-        <div style="background-color: #1e1e2e; padding: 10px; border-left: 4px solid #00e5ff; margin-bottom: 15px;">
+        <div style="background-color: #00e5ff; padding: 10px; border-left: 4px solid #00e5ff; margin-bottom: 15px;">
             <p style="margin-top: 0;"><b>💡 Reference Values (Software Presets)</b><br>
             If you want to create a manual curve, use these values as a starting point for guidance:</p>
             <ul style="margin-bottom: 0;">
@@ -113,7 +111,7 @@ GUIDE_TRANSLATIONS = {
 
         <hr style="border: 1px solid #313244; margin: 25px 0;">
 
-        <h3 style="color: #cba6f7; background-color: rgba(203, 166, 247, 0.1); padding: 5px 10px; border-radius: 4px;">🔌 Hardware Configuration</h3>
+        <h3 style="color: #00e5ff; background-color: rgba(0, 229, 255, 0.1); padding: 5px 10px; border-radius: 4px;">🔌 Hardware Configuration</h3>
 
         <h4 style="color: #00e5ff; margin-top: 15px;">Minimum Power (Stall Prevention)</h4>
         <p>Fan and pump motors have a physical limit below which they cannot spin. Example: by setting this limit to 25%, the software will recalculate the entire curve so that 0% on the graph corresponds to the 25% sent to the motor. Below the minimum value, the channel will cut power completely, turning off the device and thus avoiding annoying electrical buzzing or motor damage due to prolonged stalling.</p>
@@ -135,9 +133,9 @@ GUIDE_TRANSLATIONS = {
 
     "fr": """
         <h2 style="color: #cdd6f4;">Guide des fonctions avancées du programme</h2>
-        <p style="color: #a6adc8; margin-bottom: 20px;">Ce guide explique le fonctionnement des logiques avancées du logiciel, réparties en sections.</p>
+        <p style="color: #a6adc8; margin-bottom: 16px;">Ce guide explique le fonctionnement des logiques avancées du logiciel, réparties en sections.</p>
 
-        <h3 style="color: #cba6f7; background-color: rgba(203, 166, 247, 0.1); padding: 5px 10px; border-radius: 4px;">🎛️ Gestion des Courbes</h3>
+        <h3 style="color: #00e5ff; background-color: rgba(0, 229, 255, 0.1); padding: 5px 10px; border-radius: 4px;">🎛️ Gestion des Courbes</h3>
 
         <h4 style="color: #00e5ff; margin-top: 15px;">Mode PID</h4>
         <p>Contrairement au mode automatique, le mode PID utilise un algorithme qui adapte dynamiquement la puissance pour maintenir le capteur de référence choisi à la température définie (<b>Cible</b>), en fonction de la charge du système en temps réel.</p>
@@ -149,7 +147,7 @@ GUIDE_TRANSLATIONS = {
             <li style="margin-bottom: 8px;"><b style="color: #cba6f7;">Dérivé (D):</b> Applique un amortissement dynamique en fonction de la vitesse à laquelle la température change. <b>Dans les systèmes liquides, il est recommandé de le maintenir proche de 0.</b> L'eau se réchauffant progressivement, une valeur excessivement élevée entraînerait des pics de rotation soudains et injustifiés en réponse à de minimes fluctuations de lecture du capteur.</li>
         </ul>
 
-        <div style="background-color: #1e1e2e; padding: 10px; border-left: 4px solid #00e5ff; margin-bottom: 15px;">
+        <div style="background-color: #00e5ff; padding: 10px; border-left: 4px solid #00e5ff; margin-bottom: 15px;">
             <p style="margin-top: 0;"><b>💡 Valeurs de Référence (Préréglages du logiciel)</b><br>
             Si vous souhaitez créer une courbe manuelle, utilisez ces valeurs comme point de départ pour vous guider :</p>
             <ul style="margin-bottom: 0;">
@@ -171,7 +169,7 @@ GUIDE_TRANSLATIONS = {
 
         <hr style="border: 1px solid #313244; margin: 25px 0;">
 
-        <h3 style="color: #cba6f7; background-color: rgba(203, 166, 247, 0.1); padding: 5px 10px; border-radius: 4px;">🔌 Configuration Matérielle</h3>
+        <h3 style="color: #00e5ff; background-color: rgba(0, 229, 255, 0.1); padding: 5px 10px; border-radius: 4px;">🔌 Configuration Matérielle</h3>
 
         <h4 style="color: #00e5ff; margin-top: 15px;">Puissance Minimale (Prévention de Blocage)</h4>
         <p>Les moteurs de ventilateurs et de pompes ont une limite physique en dessous de laquelle ils ne peuvent pas tourner. Exemple : en fixant cette limite à 25%, le logiciel recalculera toute la courbe pour que 0% sur le graphique corresponde aux 25% envoyés au moteur. En dessous de la valeur minimale, le canal coupera complètement l'alimentation, éteignant le périphérique et évitant ainsi les bourdonnements électriques gênants ou les dommages au moteur dus à un blocage prolongé.</p>
@@ -193,9 +191,9 @@ GUIDE_TRANSLATIONS = {
 
     "es": """
         <h2 style="color: #cdd6f4;">Guía de las funciones avanzadas del programa</h2>
-        <p style="color: #a6adc8; margin-bottom: 20px;">Esta guía explica el funcionamiento de las lógicas avanzadas del software, divididas en secciones.</p>
+        <p style="color: #a6adc8; margin-bottom: 16px;">Esta guía explica el funcionamiento de las lógicas avanzadas del software, divididas en secciones.</p>
 
-        <h3 style="color: #cba6f7; background-color: rgba(203, 166, 247, 0.1); padding: 5px 10px; border-radius: 4px;">🎛️ Gestión de Curvas</h3>
+        <h3 style="color: #00e5ff; background-color: rgba(0, 229, 255, 0.1); padding: 5px 10px; border-radius: 4px;">🎛️ Gestión de Curvas</h3>
 
         <h4 style="color: #00e5ff; margin-top: 15px;">Modo PID</h4>
         <p>A diferencia del modo automático, el modo PID utiliza un algoritmo que adapta dinámicamente la potencia para mantener el sensor de referencia elegido a la temperatura establecida (<b>Objetivo</b>), en función de la carga del sistema en tiempo real.</p>
@@ -207,7 +205,7 @@ GUIDE_TRANSLATIONS = {
             <li style="margin-bottom: 8px;"><b style="color: #cba6f7;">Derivativo (D):</b> Aplica una amortiguación dinámica en función de la velocidad a la que cambia la temperatura. <b>En los sistemas líquidos se recomienda mantenerlo cerca de 0.</b> Dado que el agua se calienta gradualmente, un valor excesivamente alto provocaría picos de rotación repentinos e injustificados en respuesta a mínimas fluctuaciones de lectura del sensor.</li>
         </ul>
 
-        <div style="background-color: #1e1e2e; padding: 10px; border-left: 4px solid #00e5ff; margin-bottom: 15px;">
+        <div style="background-color: #00e5ff; padding: 10px; border-left: 4px solid #00e5ff; margin-bottom: 15px;">
             <p style="margin-top: 0;"><b>💡 Valores de Referencia (Ajustes preestablecidos del software)</b><br>
             Si deseas crear una curva manual, utiliza estos valores como punto de partida para orientarte:</p>
             <ul style="margin-bottom: 0;">
@@ -229,7 +227,7 @@ GUIDE_TRANSLATIONS = {
 
         <hr style="border: 1px solid #313244; margin: 25px 0;">
 
-        <h3 style="color: #cba6f7; background-color: rgba(203, 166, 247, 0.1); padding: 5px 10px; border-radius: 4px;">🔌 Configuración de Hardware</h3>
+        <h3 style="color: #00e5ff; background-color: rgba(0, 229, 255, 0.1); padding: 5px 10px; border-radius: 4px;">🔌 Configuración de Hardware</h3>
 
         <h4 style="color: #00e5ff; margin-top: 15px;">Potencia Mínima (Prevención de Estancamiento)</h4>
         <p>Los motores de ventiladores y bombas tienen un límite físico por debajo del cual no pueden girar. Ejemplo: al establecer este límite en 25%, el software recalculará toda la curva para que el 0% del gráfico corresponda al 25% enviado al motor. Por debajo del valor mínimo, el canal cortará por completo la alimentación, apagando el periférico y evitando así molestos zumbidos eléctricos o daños en el motor debido a un estancamiento prolongado.</p>
@@ -251,9 +249,9 @@ GUIDE_TRANSLATIONS = {
 
     "de": """
         <h2 style="color: #cdd6f4;">Anleitung zu den erweiterten Programmfunktionen</h2>
-        <p style="color: #a6adc8; margin-bottom: 20px;">Diese Anleitung erläutert die Funktionsweise der erweiterten Softwarelogiken, unterteilt in Abschnitte.</p>
+        <p style="color: #a6adc8; margin-bottom: 16px;">Diese Anleitung erläutert die Funktionsweise der erweiterten Softwarelogiken, unterteilt in Abschnitte.</p>
 
-        <h3 style="color: #cba6f7; background-color: rgba(203, 166, 247, 0.1); padding: 5px 10px; border-radius: 4px;">🎛️ Kurvenverwaltung</h3>
+        <h3 style="color: #00e5ff; background-color: rgba(0, 229, 255, 0.1); padding: 5px 10px; border-radius: 4px;">🎛️ Kurvenverwaltung</h3>
 
         <h4 style="color: #00e5ff; margin-top: 15px;">PID-Modus</h4>
         <p>Im Gegensatz zum automatischen Modus verwendet der PID-Modus einen Algorithmus, der die Leistung dynamisch anpasst, um den gewählten Referenzsensor basierend auf der Echtzeit-Systemlast auf der eingestellten Temperatur (<b>Ziel</b>) zu halten.</p>
@@ -265,7 +263,7 @@ GUIDE_TRANSLATIONS = {
             <li style="margin-bottom: 8px;"><b style="color: #cba6f7;">Derivativ (D):</b> Wendet eine dynamische Dämpfung basierend auf der Geschwindigkeit der Temperaturänderung an. <b>In Flüssigkeitssystemen wird empfohlen, ihn nahe 0 zu halten.</b> Da sich Wasser allmählich erwärmt, würde ein zu hoher Wert zu plötzlichen und ungerechtfertigten Drehzahlsprüngen als Reaktion auf minimale Schwankungen der Sensorwerte führen.</li>
         </ul>
 
-        <div style="background-color: #1e1e2e; padding: 10px; border-left: 4px solid #00e5ff; margin-bottom: 15px;">
+        <div style="background-color: #00e5ff; padding: 10px; border-left: 4px solid #00e5ff; margin-bottom: 15px;">
             <p style="margin-top: 0;"><b>💡 Richtwerte (Software-Voreinstellungen)</b><br>
             Wenn Sie eine manuelle Kurve erstellen möchten, verwenden Sie diese Werte als Ausgangspunkt zur Orientierung:</p>
             <ul style="margin-bottom: 0;">
@@ -276,7 +274,7 @@ GUIDE_TRANSLATIONS = {
         </div>
 
         <h4 style="color: #00e5ff;">Virtueller Sensor (ΔT)</h4>
-        <p>Durch Aktivieren des <b>Virtuellen Sensors (ΔT)</b> berechnet AquaControl ständig die Differenz zwischen dem eingestellten Hauptsensor und einem zweiten Referenzsensor: <br><code style="background-color: #1e1e2e; padding: 2px 5px;">[Hauptsensor] - [Referenz] = ΔT</code></p>
+        <p>Durch Aktivieren des <b>Virtuellen Sensors (ΔT)</b> berechnet AquaControl ständig die Differenz zwischen dem eingestellten Hauptsensor und einem zweiten Referenzsensor: <br><code style="background-color: #00e5ff; padding: 2px 5px;">[Hauptsensor] - [Referenz] = ΔT</code></p>
         <p><b>Typisches Anwendungsszenario:</b><br>
         In einem herkömmlichen Flüssigkeitskühlsystem kann die Temperatur der Komponenten niemals unter die Umgebungstemperatur fallen. Eine Kurve, die darauf eingestellt ist, die Flüssigkeit bei 35 °C zu halten, funktioniert im Winter. Im Sommer (mit Tamb > 35 °C) erzwingt sie jedoch eine Lüfterleistung von 100 %, um eine physikalisch unmögliche Temperatur zu erreichen.</p>
         <p>Durch Subtraktion der <i>Lufttemperatur</i> (Referenz) von der <i>Flüssigkeitstemperatur</i> (Hauptsensor) ist es möglich, ein PID-<b>Ziel</b> oder eine Kurve basierend auf einem <b>ΔT von 10 °C</b> einzustellen. Auf diese Weise hält das System das Wasser im Winter auf 30 °C (20 °C Umgebung + 10) und im Sommer auf 40 °C (30 °C Umgebung + 10).</p>
@@ -287,7 +285,7 @@ GUIDE_TRANSLATIONS = {
 
         <hr style="border: 1px solid #313244; margin: 25px 0;">
 
-        <h3 style="color: #cba6f7; background-color: rgba(203, 166, 247, 0.1); padding: 5px 10px; border-radius: 4px;">🔌 Hardware-Konfiguration</h3>
+        <h3 style="color: #00e5ff; background-color: rgba(0, 229, 255, 0.1); padding: 5px 10px; border-radius: 4px;">🔌 Hardware-Konfiguration</h3>
 
         <h4 style="color: #00e5ff; margin-top: 15px;">Minimale Leistung (Blockierschutz)</h4>
         <p>Lüfter- und Pumpenmotoren haben eine physikalische Grenze, unterhalb derer sie sich nicht drehen können. Beispiel: Wenn dieses Limit auf 25 % eingestellt wird, berechnet die Software die gesamte Kurve neu, sodass 0 % im Diagramm den an den Motor gesendeten 25 % entsprechen. Unterhalb des Mindestwerts unterbricht der Kanal die Stromversorgung vollständig, schaltet das Gerät ab und vermeidet so störendes elektrisches Summen oder Motorschäden durch längeres Blockieren.</p>

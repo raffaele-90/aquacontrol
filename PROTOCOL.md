@@ -29,3 +29,26 @@ To change the channel mode, overwrite the byte at the corresponding index with o
 2. Request the 1025-byte Feature Report `0x0B` (`get_feature_report`).
 3. Modify the byte at the target index (e.g., `buf[539] = 0x02` for PWM on Channel 1).
 4. Send the entire 1025-byte buffer back to the device (`send_feature_report`).
+
+## Flow Sensor Calibration (Impulses per Liter)
+Calibrating the flow sensors requires writing a 16-bit integer (Little Endian) representing the "impulses per liter" value to the EEPROM.
+
+* **Target Report ID:** `0x0B`
+* **Payload Size:** 1025 bytes
+
+### Memory Offsets
+The 16-bit calibration values for the flow sensors start at the following offsets:
+* **Flow Sensor 1:** Index `416` (uses 416 and 417)
+* **Flow Sensor 2:** Index `422` (uses 422 and 423)
+
+### Accepted Values (Hex Payload)
+The value is an unsigned 16-bit integer (0 - 65535). It must be split into two bytes (Little Endian):
+* `buf[target_index] = impulses & 0xFF` (Low byte)
+* `buf[target_index + 1] = (impulses >> 8) & 0xFF` (High byte)
+
+**Execution Flow:**
+1. Open HID communication on the device path.
+2. Request the 1025-byte Feature Report `0x0B`.
+3. Calculate the low and high bytes of the desired calibration value.
+4. Overwrite the two bytes starting at the target index.
+5. Send the entire 1025-byte buffer back to the device.

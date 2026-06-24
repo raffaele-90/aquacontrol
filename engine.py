@@ -196,6 +196,8 @@ class AquaeroEngine:
     def _map_hardware(self):
         """Maps specific Aquaero proprietary channels (PWM, Fan, Volt, Temp)."""
         self.volt_channels = {}
+        self.flow_channels = {}
+
         for i in range(1, 5):
             pwm_path = os.path.join(self.path, f"pwm{i}")
             if os.path.exists(pwm_path):
@@ -205,7 +207,13 @@ class AquaeroEngine:
             if os.path.exists(fan_path):
                 self.fan_channels[i] = fan_path
 
-        # Mappatura Dinamica Voltaggi (Regex + Fallback) ---
+        # Mappatura sensori di flusso
+        for i, fan_id in enumerate([5, 6], start=1):
+            flow_path = os.path.join(self.path, f"fan{fan_id}_input")
+            if os.path.exists(flow_path):
+                self.flow_channels[i] = flow_path
+
+        # Mappatura Voltaggi (Regex + Fallback) ---
         mapped_channels = set()
 
         for label_file in glob.glob(os.path.join(self.path, "in*_label")):
@@ -271,6 +279,15 @@ class AquaeroEngine:
             except Exception: return 0
         return 0
 
+    def get_flow_rate(self, channel):
+        """Legge il sensore di flusso e converte in L/h."""
+        if channel in getattr(self, 'flow_channels', {}):
+            try:
+                with open(self.flow_channels[channel], "r") as f:
+                    return float(f.read().strip()) / 10.0
+            except Exception: return 0.0
+        return 0.0
+
     # ---------------------------------------------------------
     # INTEGRAZIONE DASHBOARD (Storico, Virtuali, UI)
     # ---------------------------------------------------------
@@ -304,6 +321,14 @@ class AquaeroEngine:
             aqua_rpms[ch_id] = self.get_fan_rpm(ch_id)
             aqua_volts[ch_id] = self.get_fan_volt(ch_id)
 
+        # --- LETTURA SENSORI DI FLUSSO ---
+        aqua_flows = {}
+        for flow_id in range(1, 3):
+            flow_val = self.get_flow_rate(flow_id)
+            aqua_flows[flow_id] = flow_val
+            self._update_history(f"flow_rate_{flow_id}", flow_val)
+        # ---------------------------------
+
         all_temps = {**sys_data, **aqua_temps}
 
         virtual_data = {}
@@ -331,6 +356,7 @@ class AquaeroEngine:
             "temps": aqua_temps,
             "rpms": aqua_rpms,
             "volts": aqua_volts,
+            "flows": aqua_flows,
             "virtuals": virtual_data,
             "pwm_loads": pwm_loads,
             "history": {k: list(v) for k, v in self.history.items()}
@@ -573,6 +599,54 @@ class AquaeroEngine:
 
         except Exception as e:
             print(f"[HIDAPI] Errore di comunicazione USB: {e}")
+
+    def set_flow_calibration_hid(self, channel, impulses_per_liter):
+        """Imposta la calibrazione nella EEPROM dell'Aquaero."""
+        try:
+            import hid
+        except ImportError:
+            return
+
+        VENDOR_ID = 0x0c70
+        PRODUCT_ID = 0xf001 # Aquaero 6
+
+        try:
+            target_path = None
+            for dev_info in hid.enumerate(VENDOR_ID, PRODUCT_ID):
+                try:
+                    tmp_dev = hid.device()
+                    tmp_dev.open_path(dev_info['path'])
+                    tmp_dev.get_feature_report(0x0b, 1025)
+                    target_path = dev_info['path']
+                    tmp_dev.close()
+                    break
+                except Exception: pass
+
+            if not target_path: return
+
+            device = hid.device()
+            device.open_path(target_path)
+            buf = device.get_feature_report(0x0b, 1025)
+
+            # --- OFFSET ESATTI HARDWARE ---
+            FLOW_CALIBRATION_OFFSETS = {
+                1: 416,
+                2: 422
+            }
+
+            if channel in FLOW_CALIBRATION_OFFSETS:
+                target_index = FLOW_CALIBRATION_OFFSETS[channel]
+                impulses = int(max(0, min(65535, impulses_per_liter)))
+
+                buf[target_index] = impulses & 0xFF
+                buf[target_index + 1] = (impulses >> 8) & 0xFF
+
+                device.send_feature_report(buf)
+                print(f"[HIDAPI] Calibrazione Flow {channel} impostata a {impulses} imp/l.")
+
+            device.close()
+        except Exception as e:
+            print(f"[HIDAPI] Errore: {e}")
 
     def apply_pwm(self, channel_id, target_pwm, boost_enabled=False, boost_time=1.0):
         """

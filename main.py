@@ -45,7 +45,8 @@ def get_dynamic_style(opacity_value):
     QMainWindow {{ background: transparent; }}
 
     #CentralWidget {{
-        background-color: rgba(20, 20, 20, {opacity_value});
+        /* Sfondo principale Breeze Dark (Nero profondo) */
+        background-color: rgba(20, 22, 24, {opacity_value});
         border-radius: 12px;
         border: 1px solid rgba(255, 255, 255, 15);
     }}
@@ -74,10 +75,12 @@ def get_dynamic_style(opacity_value):
     QGroupBox {{
         border: 1px solid rgba(255, 255, 255, 20);
         border-radius: 8px;
-        margin-top: 30px;
-        background-color: rgba(45, 45, 45, {max(0, opacity_value - 50)});
-        font-weight: bold;
+        margin-top: 5px;
+        padding: 10px;
+        /* Riquadri solidi Breeze Dark (Grigio/Nero tecnico) */
+        background-color: rgba(35, 38, 41, 225);
     }}
+
     QGroupBox::title {{
         subcontrol-origin: margin; left: 15px; padding: 0 5px; color: #00e5ff; font-size: 13px;
     }}
@@ -121,7 +124,7 @@ def get_dynamic_style(opacity_value):
 class IPCServer(QThread):
     toggle_osd_signal = Signal()
     def __init__(self):
-        super().__init__() # <--- Fermati qui. Non aggiungere altro sotto questa riga.
+        super().__init__()
         self.running = True
         if os.path.exists(IPC_SOCKET_PATH):
             try: os.remove(IPC_SOCKET_PATH)
@@ -155,7 +158,7 @@ class IPCServer(QThread):
 class HardwareWorker(QThread):
     telemetry_ready = Signal(dict)
     def __init__(self, engine):
-        super().__init__() # <--- Fermati qui. Non aggiungere altro sotto questa riga.
+        super().__init__()
         self.engine = engine
         self.running = True
         self.active_control = True
@@ -246,7 +249,7 @@ class AquaControlUI(QMainWindow):
 
                 dialog = QDialog(self)
                 dialog.setWindowTitle(T("alarm_critical_title"))
-                dialog.setStyleSheet(self.styleSheet())
+                dialog.setStyleSheet("QDialog { background-color: #313244; color: #cdd6f4; }")
                 dialog.resize(500, 260)
 
                 layout = QVBoxLayout(dialog)
@@ -277,7 +280,7 @@ class AquaControlUI(QMainWindow):
 
                 line = QFrame()
                 line.setFrameShape(QFrame.HLine)
-                line.setStyleSheet("border: 1px solid #313244; background-color: rgba(255,255,255,10);")
+                line.setStyleSheet("border: 1px solid #45475a; background-color: rgba(255,255,255,10);")
                 layout.addWidget(line)
 
                 reason_text = data.get("reason", "Unknown")
@@ -298,6 +301,7 @@ class AquaControlUI(QMainWindow):
                 btn_layout = QHBoxLayout()
                 btn_ok = QPushButton(T("alarm_close_verify"))
                 btn_ok.setFixedWidth(120)
+                btn_ok.setStyleSheet("background-color: #00e5ff; color: #11111b; font-weight: bold; border-radius: 4px; padding: 6px;")
                 btn_ok.clicked.connect(dialog.accept)
                 btn_layout.addStretch()
                 btn_layout.addWidget(btn_ok)
@@ -450,17 +454,21 @@ class AquaControlUI(QMainWindow):
         self.sidebar.currentRowChanged.connect(self.stack.setCurrentIndex)
         self.sidebar.setCurrentRow(0)
 
-        # 7. APPLICAZIONE STILE E OPACITÀ
+        # 7. APPLICAZIONE STILE E OPACITÀ (Corretto ai toni Base)
         initial_opacity = global_config.get("window_opacity", 180)
         self.setStyleSheet(get_dynamic_style(initial_opacity))
 
     def build_fan_control_ui(self, layout):
         lbl_main_title = QLabel(T("fan_tab_title"))
-        lbl_main_title.setStyleSheet("font-size: 22px; color: #00e5ff; font-weight: bold; margin-bottom: 5px;")
+        lbl_main_title.setStyleSheet("font-size: 24px; color: #00e5ff; font-weight: bold; margin-bottom: 15px;")
         layout.addWidget(lbl_main_title)
 
+        lbl_prof_group = QLabel(T("profile_group"))
+        lbl_prof_group.setStyleSheet("font-size: 16px; color: #cdd6f4; font-weight: bold; margin-bottom: 5px;")
+        layout.addWidget(lbl_prof_group)
+
         top_bar = QHBoxLayout()
-        profile_group = QGroupBox(T("profile_group"))
+        profile_group = QGroupBox() # Nessun titolo qui!
         profile_layout = QHBoxLayout()
         self.combo_profiles = QComboBox()
 
@@ -501,38 +509,28 @@ class AquaControlUI(QMainWindow):
             self.channels_layout.addWidget(cw)
             self.channels.append(cw)
 
-        bottom_controls = QHBoxLayout()
-        self.btn_master = QPushButton(T("suspend_btn"))
-        self.btn_master.setCheckable(True)
-        self.btn_master.setChecked(True)
-        self.btn_master.setStyleSheet("background-color: #00e5ff; color: #11111b; border: none; padding: 12px; font-size: 15px; font-weight: bold; border-radius: 6px;")
-        self.btn_master.toggled.connect(self.toggle_master)
-        bottom_controls.addWidget(self.btn_master)
-        layout.addLayout(bottom_controls)
-
     def on_telemetry_received(self, data):
         temps = data.get('temps', {})
         rpms = data.get('rpms', {})
-        volts = data.get('volts', {}) # <--- AGGIUNTO: Estrazione sicura dei voltaggi
+        volts = data.get('volts', {})
         sys_data = data.get('system', {})
         new_pwm_commands = {}
         osd_data = []
 
         self.dashboard_tab.update_telemetry(data)
         osd_conf = global_config.get("osd_config", {})
-        # ... il resto della funzione scende invariato
 
         if getattr(self, 'chk_osd', None) and self.chk_osd.isChecked():
-            for s_id, conf in osd_conf.items():
-                if s_id.startswith("sys_") and conf.get("enabled"):
-                    val = sys_data.get(s_id)
-                    if val is not None:
-                        custom_name = conf.get("custom_name")
-                        default_name = self.engine.sys_sensors_meta.get(s_id, {}).get('label', s_id)
-                        name = custom_name if custom_name else default_name
-                        s_type = self.engine.sys_sensors_meta.get(s_id, {}).get('type', 'temp')
-                        if s_type == 'load': osd_data.append({'name': name, 'pwm': int(val)})
-                        else: osd_data.append({'name': name, 'temp': val})
+            # Aggiunta Flussi all'OSD (Ciclo corretto, rimosso il duplicato)
+            for f_id in range(1, 3):
+                comp_id = f"flow_{f_id}"
+                conf_f = osd_conf.get(comp_id, {"enabled": False, "custom_name": ""})
+                if conf_f.get("enabled"):
+                    flow_val = data.get('flows', {}).get(f_id, 0.0)
+                    # Utilizzo della traduzione invece di forzare "Sensore X"
+                    fallback_name = T('hw_flow_sensor_num').format(i=f_id)
+                    flow_name = conf_f.get("custom_name") or fallback_name
+                    osd_data.append({'name': flow_name, 'flow': flow_val})
 
         hw_config = global_config.get("hardware_channels", {})
 
@@ -570,13 +568,14 @@ class AquaControlUI(QMainWindow):
             self.osd_window.update_data(osd_data)
             self.restore_osd_position()
 
-        self.check_security_alarms(temps, rpms, new_pwm_commands)
+        self.check_security_alarms(temps, rpms, data.get('flows', {}), new_pwm_commands)
 
-    def check_security_alarms(self, temps, rpms, pwm_commands):
+    def check_security_alarms(self, temps, rpms, flows, pwm_commands):
         sec_config = global_config.get("security", {})
         if not sec_config: return
 
         channels_sec = sec_config.get("channels", {})
+        flows_sec = sec_config.get("flows", {})
         actions_sec = sec_config.get("actions", {})
         alarm_triggered_this_tick = False
         alarm_messages = []
@@ -586,6 +585,7 @@ class AquaControlUI(QMainWindow):
 
         current_time = time.time()
 
+        # 1. Monitoraggio Canali 12V
         for ch in self.channels:
             ch_id_str = str(ch.channel_id)
             c_sec = channels_sec.get(ch_id_str, {})
@@ -615,7 +615,6 @@ class AquaControlUI(QMainWindow):
                 if current_pwm_percent <= c_sec.get("power_val", 0):
                     channel_violations.append(T("alarm_power_msg").format(ch=ch_id_str, p=current_pwm_percent))
 
-            # Valutazione del ritardo di sicurezza
             if channel_violations:
                 if ch_id_str not in self.alarm_trackers:
                     self.alarm_trackers[ch_id_str] = current_time
@@ -626,6 +625,30 @@ class AquaControlUI(QMainWindow):
             else:
                 self.alarm_trackers.pop(ch_id_str, None)
 
+        # 2. Monitoraggio Sensori di Flusso
+        for f_id in range(1, 3):
+            f_id_str = str(f_id)
+            f_sec = flows_sec.get(f_id_str, {})
+            allowed_delay = f_sec.get("delay_val", 5)
+            current_flow = flows.get(f_id, 0.0)
+
+            flow_violations = []
+            if f_sec.get("flow_en"):
+                if current_flow <= f_sec.get("flow_val", 0.0):
+                    flow_violations.append(T("alarm_flow_msg").format(ch=f_id_str, flow=current_flow))
+
+            tracker_key = f"flow_{f_id_str}"
+            if flow_violations:
+                if tracker_key not in self.alarm_trackers:
+                    self.alarm_trackers[tracker_key] = current_time
+
+                if current_time - self.alarm_trackers[tracker_key] >= allowed_delay:
+                    alarm_triggered_this_tick = True
+                    alarm_messages.extend(flow_violations)
+            else:
+                self.alarm_trackers.pop(tracker_key, None)
+
+        # 3. Innesco Allarme Globale di Emergenza
         if alarm_triggered_this_tick and not self.alarm_triggered:
             self.alarm_triggered = True
 
@@ -695,7 +718,10 @@ class AquaControlUI(QMainWindow):
         if not p_name: return
         global_config["profiles"][p_name] = {str(ch.channel_id): ch.get_state() for ch in self.channels}
         save_config(global_config)
-        self.check_dirty_state()
+
+        self.btn_save_current.setStyleSheet("background-color: #00e676; color: #11111b; font-size: 16px; padding: 5px;")
+
+        QTimer.singleShot(1000, self.check_dirty_state)
 
     def delete_current_profile(self):
         p_name = self.combo_profiles.currentText()
@@ -762,7 +788,7 @@ class AquaControlUI(QMainWindow):
     def show_about_dialog(self):
         dialog = QDialog(self)
         dialog.setWindowTitle(T("info_btn"))
-        dialog.setStyleSheet(self.styleSheet())
+        dialog.setStyleSheet("QDialog { background-color: #232629; color: #cdd6f4; }")
 
         layout = QVBoxLayout(dialog)
         layout.setContentsMargins(20, 20, 20, 20)
@@ -799,7 +825,7 @@ class AquaControlUI(QMainWindow):
 
         line = QFrame()
         line.setFrameShape(QFrame.HLine)
-        line.setStyleSheet("border: 1px solid #313244;")
+        line.setStyleSheet("border: 1px solid #45475a;")
         layout.addWidget(line)
 
         lbl_warning = QLabel()
@@ -811,6 +837,7 @@ class AquaControlUI(QMainWindow):
         btn_layout = QHBoxLayout()
         btn_ok = QPushButton("✔ OK")
         btn_ok.setFixedWidth(100)
+        btn_ok.setStyleSheet("background-color: #00e5ff; color: #11111b; font-weight: bold; border-radius: 4px; padding: 6px;")
         btn_ok.clicked.connect(dialog.accept)
 
         btn_layout.addStretch()
@@ -857,16 +884,6 @@ class AquaControlUI(QMainWindow):
             os.chmod(self.desktop_file_path, os.stat(self.desktop_file_path).st_mode | stat.S_IEXEC)
         elif os.path.exists(self.desktop_file_path):
             os.remove(self.desktop_file_path)
-
-    def toggle_master(self, checked):
-        self.is_controlling = checked
-        self.hw_thread.active_control = checked
-        if checked:
-            self.btn_master.setText(T("suspend_btn"))
-            self.btn_master.setStyleSheet("background-color: #00e5ff; color: #11111b; border: none; padding: 12px; font-size: 15px; font-weight: bold; border-radius: 6px;")
-        else:
-            self.btn_master.setText(T("resume_btn"))
-            self.btn_master.setStyleSheet("background-color: #ff3333; color: #ffffff; border: none; padding: 12px; font-size: 15px; font-weight: bold; border-radius: 6px;")
 
     def _save_simple_config(self, key, value):
         global_config[key] = value
@@ -958,28 +975,21 @@ class AquaControlUI(QMainWindow):
             event.accept()
             return
 
-        # Legge la preferenza (se non esiste nel JSON, assume True per sicurezza)
         if global_config.get("close_to_tray", True):
             event.ignore()
             self.hide()
         else:
-            # Se la spunta non è presente, la X chiude il programma
             self.force_quit()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
 
-    # --- FIX ICONA E WAYLAND ---
     app.setWindowIcon(QIcon("aquacontrol.png"))
     app.setDesktopFileName("aquacontrol")
 
-    # --- MODIFICA QUI ---
-    # Recuperiamo il valore dell'opacità salvato nel file config.
-    # Se non esiste, usiamo 180 (che è circa il 70% di opacità).
     initial_opacity = global_config.get("window_opacity", 180)
     app.setStyleSheet(get_dynamic_style(initial_opacity))
-    # ---------------------
 
     win = AquaControlUI()
     win.setWindowIcon(QIcon("aquacontrol.png"))

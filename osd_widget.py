@@ -44,8 +44,6 @@ class AquaeroOSD(QWidget):
         self.save_timer.timeout.connect(self._emit_position)
 
         self.layout = QVBoxLayout(self)
-        # Manteniamo questo per forzare la contrazione della finestra su Wayland
-        # quando si passa da uno scaling maggiore a uno minore
         self.layout.setSizeConstraint(QLayout.SetFixedSize)
 
         self.bg_widget = QFrame(self)
@@ -67,7 +65,6 @@ class AquaeroOSD(QWidget):
         self.bg_layout.addWidget(self.header_line)
 
         self.grid_layout = QGridLayout()
-        # Allineamento globale della griglia
         self.grid_layout.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         self.bg_layout.addLayout(self.grid_layout)
 
@@ -111,30 +108,29 @@ class AquaeroOSD(QWidget):
 
         self.layout.setContentsMargins(int(10*s), int(10*s), int(10*s), int(10*s))
 
+        # Sfondo Breeze Dark coerente con le card del programma
         self.bg_widget.setStyleSheet(
-            f"#osd_bg {{ background-color: rgba(17, 17, 27, {self.bg_opacity}); "
+            f"#osd_bg {{ background-color: rgba(35, 38, 41, {self.bg_opacity}); "
             f"border-radius: {int(8*s)}px; "
             f"border: {max(1, int(1*s))}px solid rgba(255, 255, 255, 30); }}"
         )
         self.bg_layout.setContentsMargins(int(15*s), int(12*s), int(15*s), int(12*s))
-        self.bg_layout.setSpacing(int(8*s))
+        self.bg_layout.setSpacing(int(10*s))
 
-        self.icon_lbl.setStyleSheet(f"font-size: {int(14*s)}px; background: transparent; border: none;")
+        self.icon_lbl.setStyleSheet(f"font-size: {int(16*s)}px; background: transparent; border: none;")
         self.title_lbl.setStyleSheet(
             f"color: {self.color_badges}; font-weight: 900; "
-            f"font-size: {int(11*s)}px; letter-spacing: {int(1*s)}px; "
+            f"font-size: {int(14*s)}px; letter-spacing: {int(1.5*s)}px; "
             f"background: transparent; border: none;"
         )
         self.header_line.setStyleSheet(
             f"background-color: rgba(255, 255, 255, 20); "
-            f"border: none; max-height: {max(1, int(1*s))}px;"
+            f"border: none; max-height: {max(1, int(1*s))}px; margin-bottom: {int(4*s)}px;"
         )
 
-        # Spaziatura orizzontale (tra colonne) e verticale (tra righe)
-        self.grid_layout.setHorizontalSpacing(int(12*s))
-        self.grid_layout.setVerticalSpacing(int(6*s))
+        self.grid_layout.setHorizontalSpacing(int(14*s))
+        self.grid_layout.setVerticalSpacing(int(8*s))
 
-        # Forza un ricalcolo dell'interfaccia se i widget esistono già
         self._force_rebuild = True
 
     def update_data(self, hardware_data):
@@ -151,12 +147,8 @@ class AquaeroOSD(QWidget):
 
             for i, item in enumerate(hardware_data):
                 row = i % self.max_rows
-                # Se prevedi più colonne (es. affiancando due blocchi di sensori),
-                # la logica base va gestita qui. Per ora assumiamo una griglia a sviluppo verticale.
                 base_col = (i // self.max_rows) * 5
 
-                # --- COL 0: BADGE ---
-                # Usiamo il padding CSS per dare la forma, senza forzare la larghezza
                 lbl_badge = QLabel()
                 lbl_badge.setAlignment(Qt.AlignCenter)
                 lbl_badge.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
@@ -165,25 +157,22 @@ class AquaeroOSD(QWidget):
                     f"background-color: {self.color_badges}; color: #11111b; "
                     f"font-weight: 900; font-size: {int(10*s)}px; "
                     f"border-radius: {int(3*s)}px; "
-                    f"padding: {int(3*s)}px {int(6*s)}px;"
+                    f"padding: {int(2*s)}px {int(5*s)}px;"
                 )
                 self.grid_layout.addWidget(lbl_badge, row, base_col + 0)
 
-                # --- COL 1: NOME ---
                 lbl_name = QLabel()
                 lbl_name.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-                lbl_name.setMinimumWidth(int(80*s)) # Un minimo sindacale per non collassare
+                lbl_name.setMinimumWidth(int(90*s))
                 if self.custom_font: lbl_name.setFont(self.custom_font)
                 lbl_name.setStyleSheet(f"color: {self.color_names}; font-weight: 700; font-size: {int(12*s)}px;")
                 self.grid_layout.addWidget(lbl_name, row, base_col + 1)
 
-                # --- COL 2: VALORE PRINCIPALE ---
                 lbl_val = QLabel()
                 lbl_val.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
                 lbl_val.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
                 self.grid_layout.addWidget(lbl_val, row, base_col + 2)
 
-                # --- COL 3: RPM E VOLT IMPILATI ---
                 rpm_volt_container = QWidget()
                 rpm_volt_container.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
                 rpm_volt_layout = QVBoxLayout(rpm_volt_container)
@@ -199,15 +188,13 @@ class AquaeroOSD(QWidget):
                 rpm_volt_layout.addWidget(lbl_volt)
                 self.grid_layout.addWidget(rpm_volt_container, row, base_col + 3)
 
-                # --- COL 4: PROGRESS BAR ---
                 prog_bar = QProgressBar()
                 prog_bar.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Fixed)
                 prog_bar.setRange(0, 100)
                 prog_bar.setTextVisible(True)
                 prog_bar.setFormat("%p%")
-                # L'altezza della barra la fissiamo, altrimenti rischia di occupare troppo spazio verticale
                 prog_bar.setFixedHeight(int(16*s))
-                prog_bar.setMinimumWidth(int(60*s))
+                prog_bar.setMinimumWidth(int(65*s))
                 prog_bar.setStyleSheet(
                     f"QProgressBar {{ border: 1px solid #313244; border-radius: {int(3*s)}px; "
                     f"background-color: #181825; text-align: center; color: #cdd6f4; "
@@ -219,7 +206,6 @@ class AquaeroOSD(QWidget):
                 spacer.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
 
                 self.grid_layout.addWidget(prog_bar, row, base_col + 4)
-                # Conserviamo lo spacer nel caso serva nascondere la barra
                 self.grid_layout.addWidget(spacer, row, base_col + 4)
 
                 self.sensor_ui.append({
@@ -232,7 +218,6 @@ class AquaeroOSD(QWidget):
                     'spacer': spacer
                 })
 
-        # Aggiornamento effettivo dei dati
         for i, item in enumerate(hardware_data):
             ui = self.sensor_ui[i]
 
@@ -242,8 +227,10 @@ class AquaeroOSD(QWidget):
             pwm = item.get('pwm')
             temp = item.get('temp')
             volt = item.get('volt')
+            flow = item.get('flow')
 
             if "VOLT" in name_text: badge_txt = "VLT"
+            elif flow is not None: badge_txt = "FLW"
             elif rpm is not None: badge_txt = "FAN"
             elif pwm is not None: badge_txt = "PWR"
             elif temp is not None: badge_txt = "TMP"
@@ -255,6 +242,9 @@ class AquaeroOSD(QWidget):
             if temp is not None:
                 unit = "V" if badge_txt == "VLT" else "°C"
                 ui['val'].setText(f"{temp:.1f} {unit}")
+                ui['val'].setStyleSheet(f"color: {self.color_values}; font-family: monospace; font-weight: 800; font-size: {int(13*s)}px;")
+            elif flow is not None:
+                ui['val'].setText(f"{flow:.1f} L/h")
                 ui['val'].setStyleSheet(f"color: {self.color_values}; font-family: monospace; font-weight: 800; font-size: {int(13*s)}px;")
             else:
                 ui['val'].setText("--")
@@ -283,7 +273,6 @@ class AquaeroOSD(QWidget):
                 ui['spacer'].show()
 
     def _clear_grid(self):
-        """Pulisce in modo sicuro la griglia eliminando i widget."""
         while self.grid_layout.count():
             child = self.grid_layout.takeAt(0)
             if child.widget():

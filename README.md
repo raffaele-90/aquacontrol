@@ -1,4 +1,4 @@
-# 💧 AquaControl 3.2
+# 💧 AquaControl 3.3
 
 ### Architecture and project scope
 
@@ -9,13 +9,15 @@ The software relies on the official Linux kernel driver (`aquacomputer_d5next` b
 
 ### USB Protocol Reverse Engineering
 
-Since the kernel module does not allow modifying the type of power delivery on the board's four 12V outputs, AquaControl integrates a direct communication module via `python-hidapi`. Through reverse engineering of the USB protocol, the software bypasses the kernel to inject targeted payloads (Feature Reports) in real time, allowing the 12V channels to be switched from PWM mode to continuous DC voltage (Power Controlled). The software communicates with the board in override mode in real time, by the author's choice.
+Since the kernel module doesn't integrate these two functions (and several others), I used Wireshark for reverse engineering and integrated a direct communication module with the board via `python-hidapi` to change the current delivery type from PWM to DC (Power Controlled) and calibrate the flow sensors, allowing the imp/L parameter to be modified to obtain flow rate values ​​consistent with the type of sensor used.
+The software communicates with the board in real-time override mode, per the author's choice.
 
-## 🚀 AquaControl 3.2 Features
+## 🚀 AquaControl 3.3 Features
 
 - **Graphical interface and multilingual support**: The GUI is inspired by other software that I consider well-designed with a reasoned organization of functions, conceived to be "user-friendly". To make the software accessible to anyone, it has been translated into Italian, English, German, Spanish, and French, and integrates a manual within the program itself (also translated) to describe the use of the program's advanced features.
 
-- **PWM/DC Hardware Control:** As explained above, hot-switching bypassing kernel limitations.
+- **PWM/DC Control:** As explained above, hot-switching bypasses kernel limitations.
+- **Flow Sensor Calibration:** Calibrate the imp/L values ​​based on the type of sensor used, the coolant, and the type of connection. It is possible to set the parameter manually for sensors not listed, as in the original software.
 
 - **Curve Management and Power Control:** The software allows managing the delivery of each channel through four distinct modes:
   - **Automatic Mode:** Creation of a delivery curve based on user-adjustable parameters (Minimum/maximum temperature, Minimum/maximum power, and Curve/Gamma).
@@ -53,12 +55,7 @@ Hardware manufacturers, who do not make their software available on Linux, often
 
 The software is mature enough to control the four 12V outputs of the Aquaero 6 LT. In future versions I plan to integrate:
 
-* **Flow Sensors:** Support for reading data related to flow sensors, which will be converted in the software into flow rate values (liters/hour) with conversion parameters that can be set by the user, based on the chosen sensor. I will obviously also add an option to manage the program's emergency system based on the flow sensor reading.
-
-* **D5 Next Support**
-
-* **Possible support for other Aquacomputer hardware (Beta):** The `aquacomputer_d5next` driver correctly recognizes: Aquaero 5, Aquaero 6, Octo, Quadro, Poweradjust 3, D5 Next, Aquastream XT, Aquastream Ultimate, High Flow Next, High Flow USB, MPS Flow, Leakshield, Farbwerk, and Farbwerk 360. Unfortunately, I do not own any of these peripherals, but it is possible to expand the software's compatibility by putting the features as "Beta" and looking for community Beta testers who physically own these devices and can test the program.
-
+* **Farbwerk 360 Support:**
 
 ## 🛠 Installation (Arch Linux)
 

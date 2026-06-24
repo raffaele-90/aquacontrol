@@ -29,3 +29,26 @@ Per modificare la modalità del canale, è necessario sovrascrivere il byte all'
 2. Richiedere il Feature Report `0x0B` di 1025 bytes (`get_feature_report`).
 3. Modificare il byte all'indice target (es. `buf[539] = 0x02` per PWM su Canale 1).
 4. Rispedire l'intero buffer di 1025 bytes al dispositivo (`send_feature_report`).
+
+## Calibrazione Sensori di Flusso (Impulsi per Litro)
+La calibrazione dei sensori di flusso richiede la scrittura di un numero intero a 16-bit (Little Endian) che rappresenta il valore degli "impulsi per litro" nella EEPROM.
+
+* **Report ID Target:** `0x0B`
+* **Dimensione Payload:** 1025 bytes
+
+### Offset di Memoria
+I valori di calibrazione a 16-bit per i sensori di flusso iniziano ai seguenti offset:
+* **Sensore di Flusso 1:** Indice `416` (utilizza i byte 416 e 417)
+* **Sensore di Flusso 2:** Indice `422` (utilizza i byte 422 e 423)
+
+### Valori Accettati (Payload Hex)
+Il valore è un numero intero senza segno a 16-bit (da 0 a 65535). Deve essere diviso in due byte (Little Endian):
+* `buf[target_index] = impulses & 0xFF` (Byte basso)
+* `buf[target_index + 1] = (impulses >> 8) & 0xFF` (Byte alto)
+
+**Flusso di esecuzione:**
+1. Aprire la comunicazione HID sul path del dispositivo.
+2. Richiedere il Feature Report `0x0B`.
+3. Calcolare i byte basso e alto del valore di calibrazione desiderato.
+4. Sovrascrivere i due byte partendo dall'indice target.
+5. Rispedire l'intero buffer al dispositivo.
