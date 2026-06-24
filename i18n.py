@@ -176,7 +176,7 @@ TRANSLATIONS = {
         "sec_flow_alarm": "Allarme Flusso Insufficiente (≤):",
         "alarm_flow_msg": "Flujo {ch}: Livello critico ({flow:.1f} L/h)",
         "info_dialog_header": """
-        <h2 style='color: #00e5ff; margin-bottom: 5px; margin-top: 0;'>AquaControl 3.3.0</h2>
+        <h2 style='color: #00e5ff; margin-bottom: 5px; margin-top: 0;'>AquaControl 3.3.1</h2>
         <p style='margin-top: 0;'><b>Maintainer:</b> Raffaele Schiavone<br>Progetto indipendente, rilasciato sotto licenza GPLv3.</p>
         """,
         "info_dialog_warning": """
@@ -346,7 +346,7 @@ TRANSLATIONS = {
         "sec_flow_alarm": "Alarm Threshold (≤):",
         "alarm_flow_msg": "Flow {ch}: Critical level ({flow:.1f} L/h)",
         "info_dialog_header": """
-        <h2 style='color: #00e5ff; margin-bottom: 5px; margin-top: 0;'>AquaControl 3.3.0</h2>
+        <h2 style='color: #00e5ff; margin-bottom: 5px; margin-top: 0;'>AquaControl 3.3.1</h2>
         <p style='margin-top: 0;'><b>Maintainer:</b> Raffaele Schiavone<br>Independent project, GPLv3 license.</p>
         """,
         "info_dialog_warning": """
@@ -516,7 +516,7 @@ TRANSLATIONS = {
         "sec_flow_alarm": "Seuil d'Alarme (≤) :",
         "alarm_flow_msg": "Débit {ch}: Niveau critique ({flow:.1f} L/h)",
         "info_dialog_header": """
-        <h2 style='color: #00e5ff; margin-bottom: 5px; margin-top: 0;'>AquaControl 3.3.0</h2>
+        <h2 style='color: #00e5ff; margin-bottom: 5px; margin-top: 0;'>AquaControl 3.3.1</h2>
         <p style='margin-top: 0;'><b>Mainteneur :</b> Raffaele Schiavone<br>Projet indépendant, licence GPLv3.</p>
         """,
         "info_dialog_warning": """
@@ -686,7 +686,7 @@ TRANSLATIONS = {
         "sec_flow_alarm": "Umbral de Alarma (≤):",
         "alarm_flow_msg": "Flujo {ch}: Nivel crítico ({flow:.1f} L/h)",
         "info_dialog_header": """
-        <h2 style='color: #00e5ff; margin-bottom: 5px; margin-top: 0;'>AquaControl 3.3.0</h2>
+        <h2 style='color: #00e5ff; margin-bottom: 5px; margin-top: 0;'>AquaControl 3.3.1</h2>
         <p style='margin-top: 0;'><b>Mantenedor:</b> Raffaele Schiavone<br>Proyecto independiente, licencia GPLv3.</p>
         """,
         "info_dialog_warning": """
@@ -856,7 +856,7 @@ TRANSLATIONS = {
         "sec_flow_alarm": "Alarmschwelle (≤):",
         "alarm_flow_msg": "Durchfluss {ch}: Kritisches Niveau ({flow:.1f} L/h)",
         "info_dialog_header": """
-        <h2 style='color: #00e5ff; margin-bottom: 5px; margin-top: 0;'>AquaControl 3.3.0</h2>
+        <h2 style='color: #00e5ff; margin-bottom: 5px; margin-top: 0;'>AquaControl 3.3.1</h2>
         <p style='margin-top: 0;'><b>Betreuer:</b> Raffaele Schiavone<br>Unabhängiges Projekt, GPLv3-Lizenz.</p>
         """,
         "info_dialog_warning": """

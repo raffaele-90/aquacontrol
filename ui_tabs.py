@@ -1302,9 +1302,12 @@ class HardwareTabWidget(QWidget):
 
                     spin.setValue(val)
 
-            combo_type.currentTextChanged.connect(lambda text, t=combo_type: update_ui_logic(c_type=t))
-            combo_fluid.currentTextChanged.connect(lambda text, t=combo_type: update_ui_logic(c_type=t))
-            combo_fitting.currentTextChanged.connect(lambda text, t=combo_type: update_ui_logic(c_type=t))
+            combo_type.currentTextChanged.connect(lambda text, func=update_ui_logic: func())
+            combo_fluid.currentTextChanged.connect(lambda text, func=update_ui_logic: func())
+            combo_fitting.currentTextChanged.connect(lambda text, func=update_ui_logic: func())
+
+            chk_flow_en.toggled.connect(combo_type.setEnabled)
+            chk_flow_en.toggled.connect(lambda checked, func=update_ui_logic: func() if checked else None)
 
             chk_flow_en.toggled.connect(combo_type.setEnabled)
             chk_flow_en.toggled.connect(lambda checked, t=combo_type: update_ui_logic(c_type=t) if checked else None)

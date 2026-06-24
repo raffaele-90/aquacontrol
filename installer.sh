@@ -14,7 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# AquaControl - Installatore Universale Linux (v3.3.0)
+# AquaControl - Installatore Universale Linux (v3.3.1)
 
 if [ "$EUID" -ne 0 ]; then
   echo "ERRORE: Per installare AquaControl nel sistema, esegui lo script come root (es. sudo ./installer.sh)"
