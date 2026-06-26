@@ -1008,18 +1008,30 @@ class SettingsTabWidget(QWidget):
         self.main_window = main_window
         layout = QVBoxLayout(self)
 
+        # Titolo Principale
         lbl_title = QLabel(f"⚙️ {T('tab_settings')}")
         lbl_title.setStyleSheet("font-size: 24px; color: #00e5ff; font-weight: bold; margin-bottom: 10px;")
         layout.addWidget(lbl_title)
 
+        # 1. GRUPPO AUTO-SWITCH (Solo il box nero muto, la scritta è nella checkbox)
+        group_auto = QGroupBox()
+        group_auto.setStyleSheet("QGroupBox { margin-top: 5px; padding-top: 5px; }")
+        auto_layout = QHBoxLayout(group_auto)
+        auto_layout.addWidget(self.main_window.chk_autoswitch)
+        auto_layout.addWidget(self.main_window.btn_autoswitch_settings)
+        auto_layout.addStretch()
+        layout.addWidget(group_auto)
+
+        # 2. ETICHETTA "PREFERENZE" (Staccata dal box, bianca, 16px, come "Profili")
         lbl_sys_pref = QLabel(T("set_sys_pref"))
-        lbl_sys_pref.setStyleSheet("font-size: 16px; color: #cdd6f4; font-weight: bold; margin-top: 10px; margin-bottom: 5px;")
+        lbl_sys_pref.setStyleSheet("font-size: 16px; color: #cdd6f4; font-weight: bold; margin-top: 15px;")
         layout.addWidget(lbl_sys_pref)
 
-        # GRUPPO SISTEMA
+        # 3. GRUPPO PREFERENZE (Box nero muto che contiene le opzioni)
         group_sys = QGroupBox()
         group_sys.setStyleSheet("QGroupBox { margin-top: 5px; padding-top: 5px; }")
         sys_layout = QVBoxLayout(group_sys)
+        sys_layout.setSpacing(10)
 
         # Lingua
         lang_row = QHBoxLayout()
@@ -1033,28 +1045,23 @@ class SettingsTabWidget(QWidget):
         sys_layout.addLayout(lang_row)
 
         # Opacità Interfaccia
-        sys_layout.addSpacing(15)
+        sys_layout.addSpacing(10)
         opac_row = QHBoxLayout()
         lbl_opac = QLabel(T("ui_opacity"))
         lbl_opac.setStyleSheet("color: #00e5ff; font-weight: bold;")
-
         self.slider_window_opac = QSlider(Qt.Horizontal)
-        self.slider_window_opac.setRange(0, 100) # Range Trasparenza Interfaccia
+        self.slider_window_opac.setRange(0, 100)
         saved_opac = global_config.get("window_opacity", 180)
-        saved_opac_percent = int(saved_opac / 2.55) # Converte in percentuale
+        saved_opac_percent = int(saved_opac / 2.55)
         self.slider_window_opac.setValue(saved_opac_percent)
-
         self.lbl_window_opac_val = QLabel(f"{saved_opac_percent} %")
         self.lbl_window_opac_val.setStyleSheet("color: #a6adc8; font-weight: bold;")
-
         self.slider_window_opac.valueChanged.connect(self.change_ui_opacity)
-
-        opac_row.addWidget(lbl_opac)
-        opac_row.addWidget(self.slider_window_opac)
-        opac_row.addWidget(self.lbl_window_opac_val)
+        opac_row.addWidget(lbl_opac); opac_row.addWidget(self.slider_window_opac); opac_row.addWidget(self.lbl_window_opac_val)
         sys_layout.addLayout(opac_row)
 
         # Checkbox varie
+        sys_layout.addSpacing(5)
         self.chk_close_tray = QCheckBox(T("close_to_tray"))
         self.chk_close_tray.setChecked(global_config.get("close_to_tray", True))
         self.chk_close_tray.toggled.connect(self.toggle_close_tray)
@@ -1308,9 +1315,6 @@ class HardwareTabWidget(QWidget):
 
             chk_flow_en.toggled.connect(combo_type.setEnabled)
             chk_flow_en.toggled.connect(lambda checked, func=update_ui_logic: func() if checked else None)
-
-            chk_flow_en.toggled.connect(combo_type.setEnabled)
-            chk_flow_en.toggled.connect(lambda checked, t=combo_type: update_ui_logic(c_type=t) if checked else None)
 
             chk_flow_en.toggled.connect(self.set_dirty)
             combo_type.currentTextChanged.connect(self.set_dirty)
