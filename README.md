@@ -1,5 +1,9 @@
 # 💧 AquaControl 4.0
 
+<p align="center">
+  <img width="100%" alt="AquaControl Desktop Environment" src="https://github.com/user-attachments/assets/efbfd2c3-da86-43a8-8a79-99fb95e6eaa7" />
+</p>
+
 ### Architecture and project scope
 
 AquaControl is a native Linux control suite, written specifically for the Aquacomputer ecosystem, programmed around the logic of the Aquaero 6 LT and the Farbwerk 360. AquaControl is a program that aims to offer the same features as the official suite for managing custom liquid cooling loops, acting as a Linux alternative to the famous CoolerControl, which supports many more devices but does not offer the advanced controls of this software. Furthermore, AquaControl is currently the only native Linux software that supports Farbwerk 360 LED management.
@@ -13,6 +17,10 @@ Unlike the Farbwerk 360, AquaControl does not integrate setting saves to the Aqu
 
 ## 🚀 AquaControl 4.0 Features
 
+<p align="center">
+  <img width="100%" alt="AquaControl Dashboard" src="https://github.com/user-attachments/assets/cd41c603-876e-483f-8d31-5eeeb5d0464f" />
+</p>
+
 - **Graphical Interface and Multilanguage Support**: The GUI is inspired by other software that I consider well-designed with a reasoned organization of functions, conceived to be "user-friendly". To make the software accessible to everyone, it has been translated into Italian, English, German, Spanish, French, Russian, and simplified Chinese and integrates a manual (also translated) within the program itself, which describes how to use its advanced features.
 
 - **PWM/DC Control:** As explained above, hot-switching bypassing kernel limitations.
@@ -23,6 +31,10 @@ Unlike the Farbwerk 360, AquaControl does not integrate setting saves to the Aqu
   - **Manual Mode:** Point-by-point setup of the delivery curve via an interactive graph.
   - **PID Mode:** Use of an algorithm (Proportional, Integral, Derivative) to dynamically vary power delivery in order to maintain a constant target temperature on a user-selected sensor. It includes 3 preset behaviors (*Slow, Normal, Fast*) and a manual mode.
   - **Fixed Mode:** Setting a constant power value.
+
+<p align="center">
+  <img width="100%" alt="AquaControl Curve Management" src="https://github.com/user-attachments/assets/e397cf3c-6723-45f8-a2fa-bedb90803626" />
+</p>
 
 - **Hysteresis**: Calculates an average temperature value based on measurements over a specified (customizable) timeframe, preventing constant fan acceleration/deceleration due to minimal temperature variations.
 
@@ -35,10 +47,12 @@ Unlike the Farbwerk 360, AquaControl does not integrate setting saves to the Aqu
 - **Safety Features:** The software constantly monitors the RPM, power, and voltage values of the Aquaero's four 12V outputs, as well as monitoring the temperature sensors. You can configure critical thresholds at which the system can activate:
 
   - **Automatic Intervention:** Upon exceeding the threshold, the program automatically intervenes by displaying an alarm (visual and auditory), with the option to launch a custom command or force a PC shutdown with root privileges.
-
   - **Integrated Diagnostics:** In the event of a forced emergency shutdown, the software generates a system log. Upon the next PC restart, a popup window will indicate to the user which component caused the anomaly.
-
   - **Alarm Delay:** A customizable time filter (in seconds) to ignore temporary critical readings, solving the false alarms issue. This feature was introduced to handle waking from suspension: upon system wake, sensor reading is immediate, but some components (like a D5 pump) take a few moments to get up to speed.
+
+<p align="center">
+  <img width="100%" alt="AquaControl Security Settings" src="https://github.com/user-attachments/assets/d2a71308-a6c9-48fb-aaf0-a7d37ffdf771" />
+</p>
 
 - **On-Screen Display (OSD):** A customizable overlay that can be moved anywhere on the desktop. 
 **Please note:** Due to Wayland's security rules, the OSD is not designed to overlay fullscreen game windows. The OSD does not aim to replace or overlay dedicated tools like Mangohud, but was created as a system monitoring tool, designed to show sensors during normal desktop work sessions or windowed stress tests. I have not integrated and do not intend to integrate features that fall outside the project's scope.
@@ -48,22 +62,12 @@ Unlike the Farbwerk 360, AquaControl does not integrate setting saves to the Aqu
 - **Farbwerk 360 Support (Partial):**
 The Farbwerk 360 is a complex board that integrates numerous features, completely independent and detached from the Aquaero 6 LT, which is instead a board designed for controlling liquid cooling loops. 
 Currently, the support is "partial" because AquaControl can manage it as a simple RGB header and I have not integrated further functions beyond RGB LED control. I managed to code the logic of virtual LED strips (20 in total, assignable across the four RGBpx channels) and the setup of several hardware effects. The software is capable of saving settings to the device's EEPROM, so LED configuration changes can survive a system reboot. Unlike Aquasuite, which automatically saves LED configuration settings, this software offers the ability to apply effects without saving them to memory. Farbwerk 360 integration is still under development due to its complexity and the number of features present.
-    - **Fully supported effects:**
-        - **Rotating rainbow**
-        - **Swiping rainbow:**
-        - **Breathing**
-        - **Color shift**
-        - **Color change**
-        - **Blinking**
-        - **Color sequence**
-        - **Sequence**
-        - **Scanner**
-        - **Laser**
-        - **Wave**
-        - **Flame**
-        - **Rain**
-        - **Snowfall**
-        - **Stardust**
+
+<p align="center">
+  <img width="100%" alt="Farbwerk 360 Support" src="https://github.com/user-attachments/assets/6369a3d3-d009-49de-b65f-22688cbfaf64" />
+</p>
+
+  - **Fully supported effects:** *Rotating rainbow, Swiping rainbow, Breathing, Color shift, Color change, Blinking, Color sequence, Sequence, Scanner, Laser, Wave, Flame, Rain, Snowfall, Stardust.*
 
 ## ⚠️ IMPORTANT WARNING: UPDATING FIRMWARE IS NOT RECOMMENDED
 
@@ -77,7 +81,7 @@ The manufacturer uses closed protocols. Official updates can unpredictably alter
 1. Clone this repository to your computer by running in the terminal:
 
    ```bash
-   git clone [https://github.com/raffaele-90/aquacontrol.git](https://github.com/raffaele-90/aquacontrol.git)
+   git clone https://github.com/raffaele-90/aquacontrol.git
    ```
 
 2. Open the terminal in the newly cloned source folder and run the command:
@@ -105,7 +109,7 @@ The manufacturer uses closed protocols. Official updates can unpredictably alter
    
    *(Note: the exact instructions for udev permissions and any dependencies will be updated upon the official release of the Debian package).*
 
-📜 License
+## 📜 License
 Released under the free international GNU GPLv3 license. This is an independent project developed by a Linux community user and is in no way affiliated with, supported by, or endorsed by Aquacomputer.
 
 ## 👤 Author / Maintainer
