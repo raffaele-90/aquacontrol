@@ -15,16 +15,20 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+import math
+import colorsys
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider,
                                QScrollArea, QGridLayout, QFrame, QGroupBox,
                                QComboBox, QCheckBox, QPushButton, QFormLayout,
-                               QSpinBox, QDoubleSpinBox, QLineEdit, QColorDialog, QFontDialog,
-                               QMessageBox, QDialog, QDialogButtonBox)
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QColor, QFont, QCursor
+                               QSpinBox, QDoubleSpinBox, QLineEdit, QColorDialog,
+                               QFontDialog, QMessageBox, QDialog, QDialogButtonBox,
+                               QSizePolicy)
+from PySide6.QtCore import Qt, QTimer, Signal, QPointF, QRectF
+from PySide6.QtGui import QColor, QFont, QCursor, QIcon, QPainter, QConicalGradient, QRadialGradient, QBrush, QPen
 
 from config_manager import global_config, save_config
 from i18n import T
+from farbwerk360_effects import EFFECTS
 from ui_widgets import format_temp, SparklineWidget, PWMFillBar
 from guide_texts import get_guide_text
 
@@ -52,17 +56,60 @@ FLOW_PRESETS = {
     }
 }
 
+def _create_section_header(icon_filename, text, text_color="#cdd6f4", icon_color=None):
+    """Crea una riga orizzontale con Icona SVG e Testo, gestendo i colori in modo indipendente."""
+    # Se non specifichiamo un colore per l'icona, usa quello del testo
+    if icon_color is None:
+        icon_color = text_color
+
+    widget = QWidget()
+    layout = QHBoxLayout(widget)
+    layout.setContentsMargins(0, 15, 0, 5)
+    layout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+
+    icon_lbl = QLabel()
+    icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", icon_filename)
+
+    # Verniciamo l'icona con il suo colore dedicato
+    icon_lbl.setPixmap(get_colored_pixmap(icon_path, 20, icon_color))
+
+    text_lbl = QLabel(text)
+    text_lbl.setStyleSheet(f"font-size: 16px; color: {text_color}; font-weight: bold;")
+
+    layout.addWidget(icon_lbl)
+    layout.addWidget(text_lbl)
+    layout.addStretch()
+    return widget
+
+def get_colored_pixmap(icon_path, size, color_hex):
+    """Carica un SVG vettoriale (monocromatico) e lo colora dinamicamente."""
+    pixmap = QIcon(icon_path).pixmap(size, size)
+    painter = QPainter(pixmap)
+    # SourceIn dice al pennello: colora solo i pixel non trasparenti dell'icona
+    painter.setCompositionMode(QPainter.CompositionMode_SourceIn)
+    painter.fillRect(pixmap.rect(), QColor(color_hex))
+    painter.end()
+    return pixmap
+
 class DashboardTabWidget(QWidget):
     """Tab visuale informativo avanzato: Storico, Delta T e Carichi PWM. Layout Responsivo."""
     def __init__(self, parent=None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
 
-        # Header layout: Titolo, Selettore Profilo, Pulsante Ripristino
+        # Header layout: Icona, Titolo, Selettore Profilo, Pulsante Ripristino
         header_layout = QHBoxLayout()
         header_layout.setAlignment(Qt.AlignVCenter)
 
-        lbl_title = QLabel(f"📊 {T('tab_dash')}")
+        # 1. Etichetta per l'icona SVG
+        lbl_icon = QLabel()
+        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "panoramic.svg")
+        # Genera un rettangolo pixel (Pixmap) dall'icona vettoriale, specificando le dimensioni
+        lbl_icon.setPixmap(QIcon(icon_path).pixmap(24, 24))
+        header_layout.addWidget(lbl_icon)
+
+        # 2. Etichetta per il testo
+        lbl_title = QLabel(T('tab_dash'))
         lbl_title.setStyleSheet("font-size: 24px; color: #00e5ff; font-weight: bold;")
         header_layout.addWidget(lbl_title)
 
@@ -88,7 +135,10 @@ class DashboardTabWidget(QWidget):
 
         header_layout.addStretch()
 
-        self.btn_restore = QPushButton(f"👁\uFE0E {T('dash_manage_hidden')}")
+        self.btn_restore = QPushButton(f" {T('dash_manage_hidden')}")
+        icon_path_eye = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "eye.svg")
+        self.btn_restore.setIcon(QIcon(get_colored_pixmap(icon_path_eye, 16, "#cdd6f4")))
+
         self.btn_restore.setCursor(QCursor(Qt.PointingHandCursor))
         self.btn_restore.setStyleSheet("""
             QPushButton { background-color: #313244; color: #cdd6f4; border-radius: 4px; padding: 4px 10px; font-size: 12px; font-weight: bold; }
@@ -112,8 +162,7 @@ class DashboardTabWidget(QWidget):
         # ------------------------------
 
         # Sensori Virtuali
-        self.lbl_virt = QLabel(f"✨ {T('dash_virt_sensors')}")
-        self.lbl_virt.setStyleSheet("font-size: 16px; color: #cdd6f4; font-weight: bold; margin-top: 15px;")
+        self.lbl_virt = _create_section_header("virtual.svg", T('dash_virt_sensors'), "#cdd6f4")
         self.grp_virt = QWidget()
         self.lay_virt = QGridLayout(self.grp_virt)
         self.lay_virt.setAlignment(Qt.AlignLeft | Qt.AlignTop)
@@ -121,15 +170,13 @@ class DashboardTabWidget(QWidget):
         self.grp_virt.hide()
 
         # Sensori di Sistema
-        self.lbl_sys = QLabel(f"💻 {T('dash_sys_sensors')}")
-        self.lbl_sys.setStyleSheet("font-size: 16px; color: #cdd6f4; font-weight: bold; margin-top: 15px;")
+        self.lbl_sys = _create_section_header("system.svg", T('dash_sys_sensors'), "#cdd6f4")
         self.grp_sys = QWidget()
         self.lay_sys = QGridLayout(self.grp_sys)
         self.lay_sys.setAlignment(Qt.AlignLeft | Qt.AlignTop)
 
         # Sensori di Flusso
-        self.lbl_flow = QLabel(f"🌀 {T('hw_flow_sensors_title')}")
-        self.lbl_flow.setStyleSheet("font-size: 16px; color: #00e5ff; font-weight: bold; margin-top: 15px;")
+        self.lbl_flow = _create_section_header("flow.svg", T('hw_flow_sensors_title'), text_color="#00e5ff", icon_color="#3f59ce")
         self.grp_flow = QWidget()
         self.lay_flow = QGridLayout(self.grp_flow)
         self.lay_flow.setAlignment(Qt.AlignLeft | Qt.AlignTop)
@@ -137,15 +184,13 @@ class DashboardTabWidget(QWidget):
         self.grp_flow.hide()
 
         # Uscite 12V
-        self.lbl_fans = QLabel(f"⚡ {T('dash_12v_out')}")
-        self.lbl_fans.setStyleSheet("font-size: 16px; color: #f9e2af; font-weight: bold; margin-top: 15px;")
+        self.lbl_fans = _create_section_header("power.svg", T('dash_12v_out'), text_color="#f9e2af", icon_color="#ffc107")
         self.grp_fans = QWidget()
         self.lay_fans = QGridLayout(self.grp_fans)
         self.lay_fans.setAlignment(Qt.AlignLeft | Qt.AlignTop)
 
         # Sensori Aquaero
-        self.lbl_aqua = QLabel(f"🌡️ {T('dash_aqua_sensors')}")
-        self.lbl_aqua.setStyleSheet("font-size: 16px; color: #f38ba8; font-weight: bold; margin-top: 15px;")
+        self.lbl_aqua = _create_section_header("temp.svg", T('dash_aqua_sensors'), text_color="#f38ba8", icon_color="#ff3333")
         self.grp_aqua = QWidget()
         self.lay_aqua = QGridLayout(self.grp_aqua)
         self.lay_aqua.setAlignment(Qt.AlignLeft | Qt.AlignTop)
@@ -205,7 +250,7 @@ class DashboardTabWidget(QWidget):
                 if v_id in hidden: continue
                 name = global_config.get("sensors", {}).get(v_id, v_id)
                 hist = histories.get(v_id, [])
-                self._add_dash_card(self.lay_virt, name, format_temp(val), "🧮", row_virt, col_virt, v_id, history_data=hist)
+                self._add_dash_card(self.lay_virt, name, format_temp(val), "virtual.svg", row_virt, col_virt, v_id, history_data=hist)
                 col_virt += 1
                 if col_virt >= num_cols: col_virt = 0; row_virt += 1
         else:
@@ -220,11 +265,11 @@ class DashboardTabWidget(QWidget):
             hist = histories.get(s_id, [])
 
             if "load" in s_id.lower() or "busy" in s_id.lower():
-                self._add_dash_card(self.lay_sys, name, f"{int(val)} %", "⚡", row_sys, col_sys, s_id, history_data=hist)
+                self._add_dash_card(self.lay_sys, name, f"{int(val)} %", "power.svg", row_sys, col_sys, s_id, history_data=hist)
             elif "_in" in s_id.lower() or "volt" in s_id.lower():
-                self._add_dash_card(self.lay_sys, name, f"{val:.2f} V", "🔌", row_sys, col_sys, s_id, history_data=hist)
+                self._add_dash_card(self.lay_sys, name, f"{val:.2f} V", "plug.svg", row_sys, col_sys, s_id, history_data=hist)
             else:
-                self._add_dash_card(self.lay_sys, name, format_temp(val), "🖥️", row_sys, col_sys, s_id, history_data=hist)
+                self._add_dash_card(self.lay_sys, name, format_temp(val), "system.svg", row_sys, col_sys, s_id, history_data=hist)
 
             col_sys += 1
             if col_sys >= num_cols: col_sys = 0; row_sys += 1
@@ -245,7 +290,7 @@ class DashboardTabWidget(QWidget):
             if s_id in hidden: continue
 
             hist = histories.get(s_id, [])
-            self._add_dash_card(self.lay_flow, T("hw_flow_sensor_num").format(i=flow_id), f"{val:.1f} L/h", "🌀", row_flow, col_flow, s_id, history_data=hist)
+            self._add_dash_card(self.lay_flow, T("hw_flow_sensor_num").format(i=flow_id), f"{val:.1f} L/h", "flow.svg", row_flow, col_flow, s_id, history_data=hist)
 
             col_flow += 1
             if col_flow >= num_cols: col_flow = 0; row_flow += 1
@@ -268,7 +313,7 @@ class DashboardTabWidget(QWidget):
             pwm_load = pwm_loads.get(ch_id, 0)
             volt_val = volts.get(ch_id, 0.0)
 
-            self._add_dash_card(self.lay_fans, ch_name, f"{rpm} RPM", "⚡", row_fans, col_fans, s_id, history_data=hist, pwm_load=pwm_load, sub_value=f"{volt_val:.2f} V")
+            self._add_dash_card(self.lay_fans, ch_name, f"{rpm} RPM", "power.svg", row_fans, col_fans, s_id, history_data=hist, pwm_load=pwm_load, sub_value=f"{volt_val:.2f} V")
 
             col_fans += 1
             if col_fans >= num_cols: col_fans = 0; row_fans += 1
@@ -279,14 +324,13 @@ class DashboardTabWidget(QWidget):
             name = global_config["sensors"].get(s_id, s_id)
             hist = histories.get(s_id, [])
 
-            self._add_dash_card(self.lay_aqua, name, format_temp(temp), "🌡️", row_aqua, col_aqua, s_id, history_data=hist)
+            self._add_dash_card(self.lay_aqua, name, format_temp(temp), "temp.svg", row_aqua, col_aqua, s_id, history_data=hist)
 
             col_aqua += 1
             if col_aqua >= num_cols: col_aqua = 0; row_aqua += 1
 
-    def _add_dash_card(self, target_layout, title, value, icon, row, col, sensor_id, history_data=None, pwm_load=None, sub_value=None):
+    def _add_dash_card(self, target_layout, title, value, icon_filename, row, col, sensor_id, history_data=None, pwm_load=None, sub_value=None):
         card = QFrame()
-        # Riquadro elastico: si adatta tra 260px e 450px
         card.setMinimumWidth(260)
         card.setMaximumWidth(450)
         card.setStyleSheet("QFrame { background-color: rgba(30, 30, 30, 160); border-radius: 8px; border: 1px solid #333333; }")
@@ -295,23 +339,32 @@ class DashboardTabWidget(QWidget):
         c_layout.setContentsMargins(12, 10, 12, 10)
         c_layout.setSpacing(6)
 
-        # Riga Superiore: Icona, Titolo, X per nascondere
         top_layout = QHBoxLayout()
         top_layout.setContentsMargins(0, 0, 0, 0)
 
-        lbl_icon = QLabel(icon)
-        lbl_icon.setStyleSheet("font-size: 16px; background: transparent; border: none;")
+        # Determina il colore dell'icona in base al tipo di icona usata
+        icon_color = "#cdd6f4" # Default chiaro
+        if icon_filename == "temp.svg": icon_color = "#ff3333"        # Rosso
+        elif icon_filename == "power.svg": icon_color = "#ffc107"     # Giallo
+        elif icon_filename == "flow.svg": icon_color = "#00e5ff"      # Turchese
+        elif icon_filename == "plug.svg": icon_color = "#94e2d5"      # Verde acqua
+
+        lbl_icon = QLabel()
+        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", icon_filename)
+        lbl_icon.setPixmap(get_colored_pixmap(icon_path, 16, icon_color))
+        lbl_icon.setStyleSheet("background: transparent; border: none;")
 
         lbl_title = QLabel(title)
         lbl_title.setStyleSheet("color: #a6adc8; font-size: 12px; font-weight: bold; background: transparent; border: none;")
 
-        btn_hide = QPushButton("✖")
+        btn_hide = QPushButton()
+        btn_hide.setIcon(QIcon(os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "close.svg")))
         btn_hide.setFixedSize(16, 16)
         btn_hide.setCursor(QCursor(Qt.PointingHandCursor))
         btn_hide.setToolTip(T("dash_hide_tooltip"))
         btn_hide.setStyleSheet("""
-            QPushButton { color: #6c7086; background: transparent; border: none; font-size: 10px; font-weight: bold; }
-            QPushButton:hover { color: #f38ba8; }
+            QPushButton { background: transparent; border: none; }
+            QPushButton:hover { background-color: rgba(255, 51, 51, 40); border-radius: 4px; }
         """)
         btn_hide.clicked.connect(lambda _, s=sensor_id: self.hide_sensor(s))
 
@@ -407,13 +460,23 @@ class SecurityTabWidget(QWidget):
         super().__init__(parent)
         layout = QVBoxLayout(self)
 
-        lbl_title = QLabel(f"\u2622\uFE0E {T('sec_title')}")
-        lbl_title.setStyleSheet("font-size: 24px; color: #ff3333; font-weight: bold; margin-bottom: 10px;")
-        layout.addWidget(lbl_title)
+        header_layout = QHBoxLayout()
+        lbl_icon = QLabel()
+        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "security.svg")
+        lbl_icon.setPixmap(QIcon(icon_path).pixmap(24, 24))
+        header_layout.addWidget(lbl_icon)
+
+        lbl_title = QLabel(T('sec_title'))
+        lbl_title.setStyleSheet("font-size: 24px; color: #ff3333; font-weight: bold;")
+        header_layout.addWidget(lbl_title)
+        header_layout.addStretch()
+
+        layout.addLayout(header_layout)
+        layout.addSpacing(10)
 
         info_txt = QLabel(T("sec_info"))
         info_txt.setWordWrap(True)
-        info_txt.setStyleSheet("color: #a6adc8; margin-bottom: 15px; font-size: 13px;")
+        info_txt.setStyleSheet("color: #a6adc8; margin-bottom: 15px; font-size: 15px;")
         layout.addWidget(info_txt)
 
         self.sec_channels = {}
@@ -427,9 +490,8 @@ class SecurityTabWidget(QWidget):
         # ---------------------------------------------------------
         # 1. TITOLO SEZIONE 12V
         # ---------------------------------------------------------
-        lbl_12v = QLabel(f"⚡ {T('dash_12v_out')}")
-        lbl_12v.setStyleSheet("font-size: 16px; color: #cdd6f4; font-weight: bold; margin-top: 5px; margin-bottom: 5px;")
-        sec_layout.addWidget(lbl_12v)
+        self.lbl_12v = _create_section_header("power.svg", T('dash_12v_out'), text_color="#cdd6f4", icon_color="#ffc107")
+        sec_layout.addWidget(self.lbl_12v)
 
         for i in range(1, 5):
             ch_name = global_config["channels_names"].get(str(i), f"{T('channel')} {i}")
@@ -517,9 +579,8 @@ class SecurityTabWidget(QWidget):
         # ---------------------------------------------------------
         # 2. TITOLO SEZIONE FLUSSI
         # ---------------------------------------------------------
-        lbl_flow = QLabel(f"🌀 {T('hw_flow_sensors_title')}")
-        lbl_flow.setStyleSheet("font-size: 16px; color: #cdd6f4; font-weight: bold; margin-top: 15px; margin-bottom: 5px;")
-        sec_layout.addWidget(lbl_flow)
+        self.lbl_flow = _create_section_header("flow.svg", T('hw_flow_sensors_title'), text_color="#cdd6f4", icon_color="#3f59ce")
+        sec_layout.addWidget(self.lbl_flow)
 
         self.sec_flows = {}
         for i in range(1, 3):
@@ -574,12 +635,19 @@ class SecurityTabWidget(QWidget):
         action_group.setStyleSheet("QGroupBox { margin-top: 5px; padding-top: 5px; }")
         alayout = QVBoxLayout(action_group)
 
-        self.chk_sound = QCheckBox(T("sec_sound"))
-        self.chk_osd_alert = QCheckBox(T("sec_osd_flash"))
+        self.chk_sound = QCheckBox(f" {T('sec_sound')}")
+        icon_sound = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "sound.svg")
+        self.chk_sound.setIcon(QIcon(get_colored_pixmap(icon_sound, 16, "#cdd6f4")))
+
+        self.chk_osd_alert = QCheckBox(f" {T('sec_osd_flash')}")
+        icon_osd = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "osd.svg")
+        self.chk_osd_alert.setIcon(QIcon(get_colored_pixmap(icon_osd, 16, "#ff3333")))
         self.chk_osd_alert.setChecked(True)
 
         box_cmd = QHBoxLayout()
-        self.chk_cmd = QCheckBox(T("sec_cmd_custom"))
+        self.chk_cmd = QCheckBox(f" {T('sec_cmd_custom')}")
+        icon_warn = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "warning.svg")
+        self.chk_cmd.setIcon(QIcon(get_colored_pixmap(icon_warn, 16, "#ffc107")))
         self.txt_cmd = QLineEdit()
         self.txt_cmd.setPlaceholderText("/home/user/allarme.sh")
         box_cmd.addWidget(self.chk_cmd)
@@ -617,7 +685,10 @@ class SecurityTabWidget(QWidget):
         alayout.addWidget(self.chk_shutdown)
         alayout.addLayout(self.box_delay)
 
-        self.btn_save_sec = QPushButton(T("sec_save"))
+        self.btn_save_sec = QPushButton(f" {T('sec_save')}")
+        self.icon_save = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "save.svg")
+        self.icon_check = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "check.svg")
+        self.btn_save_sec.setIcon(QIcon(get_colored_pixmap(self.icon_save, 16, "#11111b")))
         self.btn_save_sec.setObjectName("SecurityBtn")
         self.btn_save_sec.setEnabled(False)
         self.btn_save_sec.clicked.connect(self.save_security)
@@ -677,12 +748,14 @@ class SecurityTabWidget(QWidget):
         save_config(global_config)
         self.btn_save_sec.setEnabled(False)
 
-        self.btn_save_sec.setText(T("saved_success"))
+        self.btn_save_sec.setText(f" {T('saved_success')}")
+        self.btn_save_sec.setIcon(QIcon(get_colored_pixmap(self.icon_check, 16, "#11111b")))
         self.btn_save_sec.setStyleSheet("background-color: #00e676 !important; color: #11111b !important; font-weight: bold;")
         QTimer.singleShot(2000, self.reset_save_btn_sec)
 
     def reset_save_btn_sec(self):
-        self.btn_save_sec.setText(T("sec_save"))
+        self.btn_save_sec.setText(f" {T('sec_save')}")
+        self.btn_save_sec.setIcon(QIcon(get_colored_pixmap(self.icon_save, 16, "#11111b")))
         self.btn_save_sec.setStyleSheet("")
 
 
@@ -728,13 +801,23 @@ class OSDConfigTabWidget(QWidget):
         self.main_window = main_window
         layout = QVBoxLayout(self)
 
-        lbl_title = QLabel(f"🖥️ {T('osd_title')}")
-        lbl_title.setStyleSheet("font-size: 24px; color: #00e5ff; font-weight: bold; margin-bottom: 10px;")
-        layout.addWidget(lbl_title)
+        header_layout = QHBoxLayout()
+        lbl_icon = QLabel()
+        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "osd.svg")
+        lbl_icon.setPixmap(QIcon(icon_path).pixmap(24, 24))
+        header_layout.addWidget(lbl_icon)
+
+        lbl_title = QLabel(T('osd_title'))
+        lbl_title.setStyleSheet("font-size: 24px; color: #00e5ff; font-weight: bold;")
+        header_layout.addWidget(lbl_title)
+        header_layout.addStretch()
+
+        layout.addLayout(header_layout)
+        layout.addSpacing(10)
 
         info_txt = QLabel(T("osd_info"))
         info_txt.setWordWrap(True)
-        info_txt.setStyleSheet("color: #a6adc8; margin-bottom: 5px; font-size: 13px;")
+        info_txt.setStyleSheet("color: #a6adc8; margin-bottom: 15px; font-size: 15px;")
         layout.addWidget(info_txt)
 
         global_group = QGroupBox()
@@ -768,7 +851,6 @@ class OSDConfigTabWidget(QWidget):
         a_layout = QFormLayout(aesthetic_group)
 
         opacity_layout = QHBoxLayout()
-        from PySide6.QtWidgets import QSlider
         self.slider_opacity = QSlider(Qt.Horizontal)
         self.slider_opacity.setRange(0, 100)
         self.slider_opacity.setFixedWidth(180)
@@ -852,7 +934,6 @@ class OSDConfigTabWidget(QWidget):
             placeholder = f"{T('channel')} {i}"
             self._add_sensor_row(list_layout, comp_id, desc, placeholder)
 
-        # Flussi aggiunti qui come richiesto!
         for i in range(1, 3):
             comp_id = f"flow_{i}"
             desc = f"Aquaero: {T('hw_flow_sensor_num').format(i=i)}"
@@ -865,9 +946,12 @@ class OSDConfigTabWidget(QWidget):
 
         s_layout.addWidget(scroll)
 
-        self.btn_save = QPushButton(T("osd_save"))
+        self.btn_save = QPushButton(f" {T('osd_save')}")
+        self.icon_save = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "save.svg")
+        self.icon_check = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "check.svg")
+        self.btn_save.setIcon(QIcon(get_colored_pixmap(self.icon_save, 16, "#11111b")))
         self.btn_save.setObjectName("ActionBtn")
-        self.btn_save.setEnabled(False) # Spento di default
+        self.btn_save.setEnabled(False)
         self.btn_save.clicked.connect(self.save_osd_config)
         s_layout.addWidget(self.btn_save)
 
@@ -907,7 +991,7 @@ class OSDConfigTabWidget(QWidget):
         global_config["osd_config"] = conf
 
     def pick_color(self, target):
-        color = QColorDialog.getColor(Qt.white, self, T("select_color"))
+        color = QColorDialog.getColor(Qt.white, None, T("select_color"))
         if color.isValid():
             self.set_dirty()
             hex_c = color.name()
@@ -954,12 +1038,14 @@ class OSDConfigTabWidget(QWidget):
         save_config(global_config)
         self.btn_save.setEnabled(False)
 
-        self.btn_save.setText(T("saved_success"))
+        self.btn_save.setText(f" {T('saved_success')}")
+        self.btn_save.setIcon(QIcon(get_colored_pixmap(self.icon_check, 16, "#11111b")))
         self.btn_save.setStyleSheet("background-color: #00e676 !important; color: #11111b !important; font-weight: bold")
         QTimer.singleShot(2000, self.reset_save_btn)
 
     def reset_save_btn(self):
-        self.btn_save.setText(T("osd_save"))
+        self.btn_save.setText(f" {T('osd_save')}")
+        self.btn_save.setIcon(QIcon(get_colored_pixmap(self.icon_save, 16, "#11111b")))
         self.btn_save.setStyleSheet("")
 
     def load_osd_config(self):
@@ -1009,9 +1095,19 @@ class SettingsTabWidget(QWidget):
         layout = QVBoxLayout(self)
 
         # Titolo Principale
-        lbl_title = QLabel(f"⚙️ {T('tab_settings')}")
-        lbl_title.setStyleSheet("font-size: 24px; color: #00e5ff; font-weight: bold; margin-bottom: 10px;")
-        layout.addWidget(lbl_title)
+        header_layout = QHBoxLayout()
+        lbl_icon = QLabel()
+        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "settings.svg")
+        lbl_icon.setPixmap(QIcon(icon_path).pixmap(24, 24))
+        header_layout.addWidget(lbl_icon)
+
+        lbl_title = QLabel(T('tab_settings'))
+        lbl_title.setStyleSheet("font-size: 24px; color: #00e5ff; font-weight: bold;")
+        header_layout.addWidget(lbl_title)
+        header_layout.addStretch()
+
+        layout.addLayout(header_layout)
+        layout.addSpacing(10)
 
         # 1. GRUPPO AUTO-SWITCH (Solo il box nero muto, la scritta è nella checkbox)
         group_auto = QGroupBox()
@@ -1037,8 +1133,8 @@ class SettingsTabWidget(QWidget):
         lang_row = QHBoxLayout()
         lang_row.addWidget(QLabel(T("set_lang")))
         self.combo_lang = QComboBox()
-        self.combo_lang.addItems(["it", "en", "de", "fr", "es"])
-        self.combo_lang.setCurrentText(global_config.get("lang", "it"))
+        self.combo_lang.addItems(["it", "en", "de", "fr", "es", "ru", "zh"])
+        self.combo_lang.setCurrentText(global_config.get("lang", "en"))
         self.combo_lang.currentTextChanged.connect(self.main_window.change_language)
         lang_row.addWidget(self.combo_lang)
         lang_row.addStretch()
@@ -1048,7 +1144,7 @@ class SettingsTabWidget(QWidget):
         sys_layout.addSpacing(10)
         opac_row = QHBoxLayout()
         lbl_opac = QLabel(T("ui_opacity"))
-        lbl_opac.setStyleSheet("color: #00e5ff; font-weight: bold;")
+        lbl_opac.setStyleSheet("color: #cdd6f4; font-weight: bold;")
         self.slider_window_opac = QSlider(Qt.Horizontal)
         self.slider_window_opac.setRange(0, 100)
         saved_opac = global_config.get("window_opacity", 180)
@@ -1097,9 +1193,19 @@ class GuideTabWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
-        lbl_title = QLabel(f"📖 {T('tab_guide')}")
-        lbl_title.setStyleSheet("font-size: 24px; color: #00e5ff; font-weight: bold; margin-bottom: 10px;")
-        layout.addWidget(lbl_title)
+        header_layout = QHBoxLayout()
+        lbl_icon = QLabel()
+        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "manual.svg")
+        lbl_icon.setPixmap(QIcon(icon_path).pixmap(24, 24))
+        header_layout.addWidget(lbl_icon)
+
+        lbl_title = QLabel(T('tab_guide'))
+        lbl_title.setStyleSheet("font-size: 24px; color: #00e5ff; font-weight: bold;")
+        header_layout.addWidget(lbl_title)
+        header_layout.addStretch()
+
+        layout.addLayout(header_layout)
+        layout.addSpacing(10)
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -1132,13 +1238,23 @@ class HardwareTabWidget(QWidget):
         self.main_window = main_window
         layout = QVBoxLayout(self)
 
-        lbl_title = QLabel(f"🔌 {T('tab_hw_channels')}")
-        lbl_title.setStyleSheet("font-size: 24px; color: #00e5ff; font-weight: bold; margin-bottom: 10px;")
-        layout.addWidget(lbl_title)
+        header_layout = QHBoxLayout()
+        lbl_icon = QLabel()
+        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "hardware.svg")
+        lbl_icon.setPixmap(QIcon(icon_path).pixmap(24, 24))
+        header_layout.addWidget(lbl_icon)
+
+        lbl_title = QLabel(T('tab_hw_channels'))
+        lbl_title.setStyleSheet("font-size: 24px; color: #00e5ff; font-weight: bold;")
+        header_layout.addWidget(lbl_title)
+        header_layout.addStretch()
+
+        layout.addLayout(header_layout)
+        layout.addSpacing(10)
 
         info_txt = QLabel(T("hw_channels_info"))
         info_txt.setWordWrap(True)
-        info_txt.setStyleSheet("color: #a6adc8; margin-bottom: 15px; font-size: 13px;")
+        info_txt.setStyleSheet("color: #a6adc8; margin-bottom: 15px; font-size: 15px;")
         layout.addWidget(info_txt)
 
         scroll = QScrollArea()
@@ -1151,9 +1267,8 @@ class HardwareTabWidget(QWidget):
         self.hw_widgets = {}
 
         # --- TITOLO SEZIONE 12V ---
-        lbl_12v = QLabel(f"⚡ {T('dash_12v_out')}")
-        lbl_12v.setStyleSheet("font-size: 16px; color: #cdd6f4; font-weight: bold; margin-top: 5px; margin-bottom: 5px;")
-        self.channels_layout.addWidget(lbl_12v)
+        self.lbl_12v = _create_section_header("power.svg", T('dash_12v_out'), text_color="#cdd6f4", icon_color="#ffc107")
+        self.channels_layout.addWidget(self.lbl_12v)
 
         self.hw_widgets = {}
 
@@ -1240,9 +1355,8 @@ class HardwareTabWidget(QWidget):
             self.channels_layout.addWidget(group)
 
         # --- TITOLO SEZIONE FLUSSI ---
-        lbl_flow = QLabel(f"🌀 {T('hw_flow_sensors_title')}")
-        lbl_flow.setStyleSheet("font-size: 16px; color: #cdd6f4; font-weight: bold; margin-top: 15px; margin-bottom: 5px;")
-        self.channels_layout.addWidget(lbl_flow)
+        self.lbl_flow = _create_section_header("flow.svg", T('hw_flow_sensors_title'), text_color="#cdd6f4", icon_color="#3f59ce")
+        self.channels_layout.addWidget(self.lbl_flow)
 
         self.flow_widgets = {}
         for i in range(1, 3):
@@ -1341,9 +1455,11 @@ class HardwareTabWidget(QWidget):
         self.channels_layout.addStretch()
         layout.addWidget(scroll)
 
-        self.btn_save_hw = QPushButton(T("hw_save_btn"))
+        self.btn_save_hw = QPushButton(f" {T('hw_save_btn')}")
+        self.icon_save = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "save.svg")
+        self.icon_check = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "check.svg")
+        self.btn_save_hw.setIcon(QIcon(get_colored_pixmap(self.icon_save, 16, "#11111b")))
         self.btn_save_hw.setObjectName("ActionBtn")
-
         self.btn_save_hw.setEnabled(False)
         self.btn_save_hw.clicked.connect(self.save_hardware_config)
         layout.addWidget(self.btn_save_hw)
@@ -1394,12 +1510,14 @@ class HardwareTabWidget(QWidget):
 
         self.btn_save_hw.setEnabled(False)
 
-        self.btn_save_hw.setText(T("saved_success"))
+        self.btn_save_hw.setText(f" {T('saved_success')}")
+        self.btn_save_hw.setIcon(QIcon(get_colored_pixmap(self.icon_check, 16, "#11111b")))
         self.btn_save_hw.setStyleSheet("background-color: #00e676 !important; color: #11111b !important; font-weight: bold;")
         QTimer.singleShot(2000, self.reset_save_btn_hw)
 
     def reset_save_btn_hw(self):
-        self.btn_save_hw.setText(T("hw_save_btn"))
+        self.btn_save_hw.setText(f" {T('hw_save_btn')}")
+        self.btn_save_hw.setIcon(QIcon(get_colored_pixmap(self.icon_save, 16, "#11111b")))
         self.btn_save_hw.setStyleSheet("")
 
     def load_hardware_config(self):
@@ -1468,3 +1586,1409 @@ class HardwareTabWidget(QWidget):
             widgets["combo_type"].setEnabled(en)
             if en:
                 widgets["update_logic"]()
+
+# ---------------------------------------------------------------------------
+#  Ruota dei colori (Tonalita' = angolo, Saturazione = distanza dal centro)
+# ---------------------------------------------------------------------------
+class ColorWheel(QWidget):
+    changed = Signal()  # emesso quando l'utente trascina/clicca sulla ruota
+
+    def __init__(self, diameter=170, parent=None):
+        super().__init__(parent)
+        self._d = diameter
+        self.setFixedSize(diameter, diameter)
+        self.setCursor(QCursor(Qt.CrossCursor))
+        self._h = 0.0   # tonalita' 0..1
+        self._s = 0.0   # saturazione 0..1
+
+    def hue(self):
+        return self._h
+
+    def sat(self):
+        return self._s
+
+    def set_hs(self, h, s):
+        """Posiziona il selettore senza emettere segnali."""
+        self._h = max(0.0, min(0.9999, float(h)))
+        self._s = max(0.0, min(1.0, float(s)))
+        self.update()
+
+    def _radius(self):
+        return self._d / 2.0 - 6
+
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing, True)
+        cx = cy = self._d / 2.0
+        R = self._radius()
+
+        # corona delle tonalita'
+        cone = QConicalGradient(cx, cy, 0.0)
+        steps = 36
+        for i in range(steps + 1):
+            pos = i / steps
+            cone.setColorAt(pos, QColor.fromHsvF(min(0.9999, pos), 1.0, 1.0))
+        p.setPen(Qt.NoPen)
+        p.setBrush(QBrush(cone))
+        p.drawEllipse(QPointF(cx, cy), R, R)
+
+        # sfumatura bianca al centro = saturazione
+        rad = QRadialGradient(cx, cy, R)
+        rad.setColorAt(0.0, QColor(255, 255, 255, 255))
+        rad.setColorAt(1.0, QColor(255, 255, 255, 0))
+        p.setBrush(QBrush(rad))
+        p.drawEllipse(QPointF(cx, cy), R, R)
+
+        # bordo
+        p.setBrush(Qt.NoBrush)
+        p.setPen(QPen(QColor("#45475a"), 2))
+        p.drawEllipse(QPointF(cx, cy), R, R)
+
+        # selettore
+        ang = self._h * 2 * math.pi
+        rr = self._s * R
+        x = cx + rr * math.cos(ang)
+        y = cy - rr * math.sin(ang)
+        p.setBrush(QBrush(QColor(255, 255, 255)))
+        p.setPen(QPen(QColor("#11111b"), 2))
+        p.drawEllipse(QPointF(x, y), 7, 7)
+
+    def _update_from_point(self, pos):
+        cx = cy = self._d / 2.0
+        R = self._radius()
+        dx = pos.x() - cx
+        dy = pos.y() - cy
+        dist = math.hypot(dx, dy)
+        ang = math.atan2(-dy, dx)
+        if ang < 0:
+            ang += 2 * math.pi
+        self._h = min(0.9999, ang / (2 * math.pi))
+        self._s = min(1.0, dist / R)
+        self.update()
+        self.changed.emit()
+
+    def mousePressEvent(self, event):
+        self._update_from_point(event.position())
+
+    def mouseMoveEvent(self, event):
+        if event.buttons() & Qt.LeftButton:
+            self._update_from_point(event.position())
+
+# ---------------------------------------------------------------------------
+#  Riquadro cliccabile (riga di canale): emette 'clicked' quando premuto
+# ---------------------------------------------------------------------------
+class ClickableFrame(QFrame):
+    clicked = Signal()
+
+    def mousePressEvent(self, event):
+        self.clicked.emit()
+        super().mousePressEvent(event)
+
+
+class LedStripBar(QFrame):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedHeight(22)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self._color = QColor(0, 0, 0)
+        self._enabled = False
+        self._refresh()
+
+    def set_color(self, qcolor, enabled):
+        self._color = qcolor
+        self._enabled = enabled
+        self._refresh()
+
+    def _refresh(self):
+        if self._enabled:
+            c = self._color
+            self.setStyleSheet(
+                "border-radius: 5px; border: 1px solid #45475a;"
+                f"background-color: rgb({c.red()},{c.green()},{c.blue()});")
+        else:
+            self.setStyleSheet(
+                "border-radius: 5px; border: 1px solid #313244;"
+                "background-color: #1e1e2e;")
+
+
+# ---------------------------------------------------------------------------
+#  Sezione comprimibile con triangolino (per nascondere i pannelli)
+# ---------------------------------------------------------------------------
+class CollapsibleSection(QWidget):
+    def __init__(self, title, parent=None):
+        super().__init__(parent)
+        self._open = True
+        self._title = title
+        v = QVBoxLayout(self)
+        v.setContentsMargins(0, 0, 0, 0)
+        v.setSpacing(0)
+
+        self.header = QPushButton()
+        self.header.setCursor(QCursor(Qt.PointingHandCursor))
+        self.header.setStyleSheet(
+            "QPushButton { text-align: left; padding: 6px 8px; border: none;"
+            " font-size: 16px; color: #ffffff; font-weight: bold;"
+            " background-color: #181825; border-radius: 6px; }"
+            "QPushButton:hover { background-color: #313244; }")
+        self.header.clicked.connect(self.toggle)
+        v.addWidget(self.header)
+
+        self.body = QWidget()
+        self.body_layout = QVBoxLayout(self.body)
+        self.body_layout.setContentsMargins(8, 8, 8, 8)
+        v.addWidget(self.body)
+        self._sync()
+
+    def set_title(self, title):
+        self._title = title
+        self._sync()
+
+    def add_widget(self, w):
+        self.body_layout.addWidget(w)
+
+    def add_layout(self, lay):
+        self.body_layout.addLayout(lay)
+
+    def toggle(self):
+        self._open = not self._open
+        self.body.setVisible(self._open)
+        self._sync()
+
+    def _sync(self):
+        icon_name = "chevron_down.svg" if self._open else "chevron_right.svg"
+        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", icon_name)
+        self.header.setIcon(QIcon(get_colored_pixmap(icon_path, 16, "#ffffff")))
+        self.header.setText(f"  {self._title}")
+
+
+class StripTimeline(QFrame):
+    """
+    Rappresentazione hardware-like di un canale LED (90 diodi) con editor multilinea.
+    - Il righello superiore mostra l'output visivo finale simulato.
+    - Le corsie inferiori permettono la gestione isolata delle strisce sovrapposte.
+    """
+    stripSelected = Signal(int)
+    stripMoved    = Signal(int, int)
+    stripDeleted  = Signal(int)
+    stripAdded    = Signal(int, int)
+
+    MAX_LED = 90
+    WIDTH   = 15
+    PAD_X   = 15
+    PAD_TOP = 25
+    PAD_BOT = 15
+    RULER_H = 14
+    LANE_H  = 22
+    LANE_GAP= 6
+
+    def __init__(self, channel, parent=None):
+        super().__init__(parent)
+        self.channel = channel
+        self.setMouseTracking(True)
+        self._strips = []
+        self._selected_id = None
+        self._drag_id = None
+        self._drag_offset = 0
+        self._recompute_height()
+
+    def set_strips(self, strips, selected_id):
+        self._strips = list(strips)
+        self._selected_id = selected_id
+        self._recompute_height()
+        self.update()
+
+    def _recompute_height(self):
+        """Espande dinamicamente l'altezza del widget in base al numero di strisce."""
+        lanes = max(1, len(self._strips))
+        h = self.PAD_TOP + self.RULER_H + 12 + (lanes * (self.LANE_H + self.LANE_GAP)) + self.PAD_BOT
+        self.setFixedHeight(int(h))
+
+    def _led_width(self):
+        return (self.width() - 2 * self.PAD_X) / self.MAX_LED
+
+    def _led_rect(self, index_0_based):
+        lw = self._led_width()
+        x = self.PAD_X + index_0_based * lw
+        return QRectF(x, self.PAD_TOP, lw - 1.5, self.RULER_H)
+
+    def _lane_top(self, lane_idx):
+        return self.PAD_TOP + self.RULER_H + 12 + lane_idx * (self.LANE_H + self.LANE_GAP)
+
+    def _bar_rect(self, lane_idx, start):
+        lw = self._led_width()
+        x = self.PAD_X + (start - 1) * lw
+        w = self.WIDTH * lw - 1.5
+        return QRectF(x, self._lane_top(lane_idx), w, self.LANE_H)
+
+    def _get_led_at_x(self, x):
+        if x < self.PAD_X: return 1
+        if x > self.width() - self.PAD_X: return self.MAX_LED
+        lw = self._led_width()
+        if lw <= 0: return 1
+        led = int((x - self.PAD_X) / lw) + 1
+        return max(1, min(self.MAX_LED - self.WIDTH + 1, led))
+
+    def _hit(self, pos):
+        """Controlla se il mouse ha cliccato su una striscia all'interno della sua corsia."""
+        for lane_idx, s in enumerate(self._strips):
+            if self._bar_rect(lane_idx, s["start"]).contains(pos):
+                return s
+        return None
+
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing, True)
+
+        # Sfondo del canale
+        p.setPen(Qt.NoPen)
+        p.setBrush(QColor("#1e1e2e"))
+        p.drawRoundedRect(0, 0, self.width(), self.height(), 8, 8)
+
+        # --- 1. RENDERING RIGHELLO DIODI (Output Finale Simulato) ---
+        colors = [QColor("#313244")] * self.MAX_LED
+
+        # Le strisce create prima (indice inferiore nell'array) hanno priorità visiva.
+        # Stampandole al contrario, le prime sovrascrivono visivamente le ultime.
+        for s in reversed(self._strips):
+            c = QColor(s["r"], s["g"], s["b"])
+            st = s["start"] - 1
+            for i in range(st, min(self.MAX_LED, st + self.WIDTH)):
+                if 0 <= i < self.MAX_LED:
+                    colors[i] = c
+
+        p.setFont(QFont("system-ui", 7, QFont.Bold))
+        for led in range(1, self.MAX_LED + 1):
+            # Testo e tacche (stampati ogni 10 LED o sul primo)
+            if led == 1 or led % 10 == 0:
+                rect = self._led_rect(led - 1)
+                center_x = rect.center().x()
+                p.setPen(QPen(QColor("#45475a"), 1))
+                p.drawLine(int(center_x), int(self.PAD_TOP - 3), int(center_x), int(self.PAD_TOP - 8))
+                p.setPen(QColor("#6c7086"))
+                p.drawText(QRectF(center_x - 10, self.PAD_TOP - 22, 20, 12), Qt.AlignCenter, str(led))
+
+            # Disegno dei singoli diodi
+            p.setPen(Qt.NoPen)
+            p.setBrush(colors[led - 1])
+            # Disattiviamo l'antialiasing per ottenere quadrati netti e nitidi
+            p.setRenderHint(QPainter.Antialiasing, False)
+            p.drawRoundedRect(self._led_rect(led - 1), 2, 2)
+            p.setRenderHint(QPainter.Antialiasing, True)
+
+        # --- Testo Placeholder (Se vuoto) ---
+        if not self._strips:
+            p.setPen(QColor("#6c7086"))
+            p.setFont(QFont("system-ui", 9))
+            p.drawText(QRectF(self.PAD_X, self._lane_top(0), self.width() - 2 * self.PAD_X, self.LANE_H),
+                       Qt.AlignCenter, T("fw360_no_strips_hint"))
+            return
+
+        # --- 2. RENDERING CORSIE (Editor Strisce) ---
+        for lane_idx, s in enumerate(self._strips):
+            r = self._bar_rect(lane_idx, s["start"])
+            sel = (s["id"] == self._selected_id)
+
+            p.setBrush(QBrush(QColor(s["r"], s["g"], s["b"])))
+            p.setPen(QPen(QColor("#00e5ff") if sel else QColor("#45475a"), 2 if sel else 1))
+            p.drawRoundedRect(r, 4, 4)
+
+            # Testo all'interno della striscia (Numerazione LED occupati)
+            lum = 0.299 * s["r"] + 0.587 * s["g"] + 0.114 * s["b"]
+            p.setPen(QColor("#11111b") if lum > 140 else QColor("#ffffff"))
+            p.setFont(QFont("system-ui", 8, QFont.Bold))
+            end_led = min(s["start"] + self.WIDTH - 1, self.MAX_LED)
+            p.drawText(r, Qt.AlignCenter, f"{s['start']}\u2013{end_led}")
+
+    def mousePressEvent(self, event):
+        pos = event.position()
+        s = self._hit(pos)
+
+        if event.button() == Qt.LeftButton:
+            if s is not None:
+                self._drag_id = s["id"]
+                led_clicked = self._get_led_at_x(pos.x())
+                self._drag_offset = led_clicked - s["start"]
+                self.stripSelected.emit(s["id"])
+        elif event.button() == Qt.RightButton:
+            if s is not None:
+                self.stripDeleted.emit(s["id"])
+
+    def mouseMoveEvent(self, event):
+        if self._drag_id is None:
+            return
+        led = self._get_led_at_x(event.position().x())
+        new_start = led - self._drag_offset
+        new_start = max(1, min(self.MAX_LED - self.WIDTH + 1, new_start))
+        self.stripMoved.emit(self._drag_id, int(new_start))
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self._drag_id = None
+
+    def mouseDoubleClickEvent(self, event):
+        if event.button() != Qt.LeftButton:
+            return
+        # Il doppio clic ora funziona ovunque sul widget, non solo sulla barra LED
+        if self._hit(event.position()) is not None:
+            return
+        new_start = self._get_led_at_x(event.position().x())
+        self.stripAdded.emit(self.channel, new_start)
+
+
+# ---------------------------------------------------------------------------
+#  TAB Farbwerk 360
+# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------- #
+#  EDITOR DINAMICO DEGLI EFFETTI  (Blocco B1)
+#  Costruisce da solo i controlli di ogni effetto leggendo la spec da EFFECTS:
+#    spec.words  -> cursori numerici      spec.flags  -> checkbox
+#    spec.colors -> selettori colore (singolo / sfondo+colori / lista / point+strip)
+#  Le etichette usano le traduzioni (chiavi "fw360_fx_*"); finché non le aggiungiamo
+#  in i18n (Blocco C) si usa una tabella inglese di riserva.
+# ------------------------------------------------------------------------- #
+
+# Ordine con cui gli effetti compaiono nel menu a tendina (Static per primo).
+_FX_ORDER = [
+    "static", "rotating_rainbow", "swiping_rainbow", "breathing", "color_shift",
+    "color_change", "blinking", "color_sequence", "sequence", "scanner", "laser",
+    "wave", "flame", "rain", "snowfall", "stardust",
+]
+
+# Parametri da NON mostrare (non ancora chiariti dal reverse engineering).
+_FX_HIDE_PARAMS = {}
+
+# Flag attivi di default (per rispecchiare i default di Aquasuite).
+_FX_DEFAULT_FLAGS = {"blinking": {"fade_in", "fade_out"}}
+
+# Etichette di riserva (inglese), usate finché le chiavi i18n non esistono.
+_FX_LABELS = {
+    "mode": "Mode",
+    "static": "Single color", "breathing": "Breathing", "rotating_rainbow": "Rotating rainbow",
+    "blinking": "Blinking", "color_change": "Color change", "sequence": "Sequence",
+    "scanner": "Scanner", "laser": "Laser", "wave": "Wave", "color_sequence": "Color sequence",
+    "color_shift": "Color shift", "flame": "Flame", "rain": "Rain", "snowfall": "Snowfall",
+    "stardust": "Stardust", "swiping_rainbow": "Swiping rainbow",
+    "speed": "Speed", "intensity": "Intensity", "delay_max": "Delay max. brightness",
+    "delay_min": "Delay min. brightness", "color_range": "Color range", "smoothness": "Smoothness",
+    "width": "Width", "start_delay": "Start delay", "interval_min": "Delay (min)",
+    "interval_max": "Delay (max)", "delay_after": "Delay after sequence",
+    "delay_before": "Delay before sequence", "total_area": "Total area",
+    "drop_speed": "Drop speed", "drop_items": "Drop items", "drop_size": "Drop size",
+    "drop_smoothness": "Drop smoothness", "runtime": "Runtime", "point_speed": "Point speed",
+    "point_smoothness": "Point smoothness", "point_size": "Point size",
+    "color_change_speed": "Color change speed",
+    "reverse": "Reverse direction", "fade": "Fade", "fade_in": "Fade in", "fade_out": "Fade out",
+    "random_color": "Random color", "slide_colors": "Slide colors", "color_mode2": "Color mode 2",
+    "color_change": "Color change", "circular": "Circular", "snow": "Snow",
+    "background": "Background", "color": "Color", "color1": "Color 1", "color2": "Color 2",
+    "point_color": "Point color", "strip_color": "Strip color", "colors": "Colors",
+}
+
+
+def _fxlabel(key):
+    """Etichetta tradotta se la chiave i18n esiste, altrimenti riserva inglese."""
+    k = "fw360_fx_" + key
+    s = T(k)
+    if s != k:
+        return s
+    return _FX_LABELS.get(key, key.replace("_", " ").capitalize())
+
+
+def _default_role_color(idx):
+    return [(255, 0, 0), (0, 255, 0), (0, 0, 255)][idx % 3]
+
+
+def _color_plan(spec):
+    """Dalla spec dei colori ricava i selettori da mostrare.
+    Voci: (kind, key, label) con kind in {'single','fixed','bg','list'}."""
+    kind = spec.colors[0]
+    if kind == 'single':
+        return [('single', 'color', 'color')]
+    if kind == 'point_strip':
+        return [('fixed', 'point_color', 'point_color'),
+                ('fixed', 'strip_color', 'strip_color')]
+    if kind == 'roles':
+        plan = []
+        for role in spec.colors[1]:
+            plan.append(('bg', 'background', 'background') if role == 'background'
+                        else ('fixed', role, role))
+        return plan
+    if kind == 'list':
+        plan = []
+        if spec.colors[2]:            # has_bg
+            plan.append(('bg', 'background', 'background'))
+        plan.append(('list', 'colors', 'colors'))
+        return plan
+    return []                          # 'rainbow' o sconosciuto: nessun colore utente
+
+
+class _FxColorButton(QPushButton):
+    """Piccolo pulsante-campione che apre il selettore colore."""
+    picked = Signal()
+
+    def __init__(self, rgb=(255, 0, 0), parent=None):
+        super().__init__(parent)
+        self.setFixedSize(46, 24)
+        self.setCursor(QCursor(Qt.PointingHandCursor))
+        self._rgb = tuple(int(x) & 255 for x in rgb)
+        self._refresh()
+        self.clicked.connect(self._choose)
+
+    def rgb(self):
+        return self._rgb
+
+    def set_rgb(self, rgb):
+        self._rgb = tuple(int(x) & 255 for x in rgb)
+        self._refresh()
+
+    def _refresh(self):
+        r, g, b = self._rgb
+        self.setStyleSheet(
+            f"background-color: rgb({r},{g},{b}); border:1px solid #45475a; border-radius:4px;")
+
+    def _choose(self):
+        r, g, b = self._rgb
+        c = QColorDialog.getColor(QColor(r, g, b), None, T("select_color"))
+        if c.isValid():
+            self._rgb = (c.red(), c.green(), c.blue())
+            self._refresh()
+            self.picked.emit()
+
+
+class _FxColorList(QWidget):
+    """Lista di colori con "+" (aggiungi) e "−" (togli l'ultimo)."""
+    changed = Signal()
+
+    def __init__(self, colors=None, max_colors=6, parent=None):
+        super().__init__(parent)
+        self._max = int(max_colors)
+        row = QHBoxLayout(self)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(4)
+        self._chips_host = QWidget()
+        self._chips = QHBoxLayout(self._chips_host)
+        self._chips.setContentsMargins(0, 0, 0, 0)
+        self._chips.setSpacing(4)
+        row.addWidget(self._chips_host)
+        self._add = QPushButton("+"); self._add.setFixedSize(24, 24)
+        self._add.setCursor(QCursor(Qt.PointingHandCursor)); self._add.clicked.connect(self._on_add)
+        self._del = QPushButton("\u2212"); self._del.setFixedSize(24, 24)
+        self._del.setCursor(QCursor(Qt.PointingHandCursor)); self._del.clicked.connect(self._on_del)
+        for b in (self._add, self._del):
+            b.setStyleSheet("QPushButton{background:#313244;color:#cdd6f4;border:1px solid #45475a;"
+                            "border-radius:4px;font-weight:bold;}QPushButton:hover{background:#45475a;}")
+        row.addWidget(self._add); row.addWidget(self._del); row.addStretch()
+        self._buttons = []
+        self.set_colors(colors or [(255, 0, 0)])
+
+    def colors(self):
+        return [b.rgb() for b in self._buttons]
+
+    def set_colors(self, colors):
+        while self._buttons:
+            self._buttons.pop().setParent(None)
+        for rgb in (colors or [(255, 0, 0)]):
+            self._append(tuple(rgb))
+        self._sync()
+
+    def _append(self, rgb):
+        if len(self._buttons) >= self._max:
+            return
+        b = _FxColorButton(rgb)
+        b.picked.connect(self._bubble)
+        self._chips.addWidget(b)
+        self._buttons.append(b)
+
+    def _bubble(self):
+        self.changed.emit()
+
+    def _on_add(self):
+        self._append((255, 0, 0)); self._sync(); self.changed.emit()
+
+    def _on_del(self):
+        if len(self._buttons) > 1:
+            self._buttons.pop().setParent(None); self._sync(); self.changed.emit()
+
+    def _sync(self):
+        self._add.setEnabled(len(self._buttons) < self._max)
+        self._del.setEnabled(len(self._buttons) > 1)
+
+
+class EffectEditor(QWidget):
+    """Pannello parametri che si ricostruisce in base all'effetto scelto."""
+    changed = Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._spec = None
+        self._loading = False
+        self._color_widgets = {}     # ruolo -> _FxColorButton
+        self._color_list = None      # _FxColorList (effetti a lista)
+        self._param_sliders = {}     # nome -> (QSlider, QLabel valore)
+        self._flag_checks = {}       # nome -> QCheckBox
+        self._v = QVBoxLayout(self)
+        self._v.setContentsMargins(0, 6, 0, 0)
+        self._v.setSpacing(6)
+
+    def set_effect(self, mode, fx=None):
+        self._spec = EFFECTS.get(mode)
+        self._clear()
+        if self._spec is None:
+            return
+        self._loading = True
+        fx = fx or {}
+        params_in = fx.get("params", {}) or {}
+        flags_in = fx.get("flags", {}) or {}
+        colors_in = [tuple(c) for c in (fx.get("colors") or [])]
+        bg_in = fx.get("background")
+
+        # --- colori ---
+        idx = 0
+        for kind, key, label in _color_plan(self._spec):
+            if kind == 'list':
+                self._color_list = _FxColorList(colors_in or [(255, 0, 0)], max_colors=6)
+                self._color_list.changed.connect(self._emit)
+                self._v.addWidget(self._labeled(_fxlabel(label), self._color_list))
+            else:
+                if key == 'background':
+                    rgb = tuple(bg_in) if bg_in is not None else (10, 10, 10)
+                else:
+                    rgb = colors_in[idx] if idx < len(colors_in) else _default_role_color(idx)
+                    idx += 1
+                btn = _FxColorButton(rgb)
+                btn.picked.connect(self._emit)
+                self._color_widgets[key] = btn
+                self._v.addWidget(self._labeled(_fxlabel(label), btn))
+
+        # --- parametri numerici ---
+        hide = _FX_HIDE_PARAMS.get(mode, set())
+        for name, k in self._spec.words.items():
+            if name == 'count' or name in hide:
+                continue
+            default = self._spec.default_words[k] if k < len(self._spec.default_words) else 0
+            val = max(0, min(100, int(params_in.get(name, default))))
+            lo = 1 if name == 'width' else 0
+            row, slider, vlab = self._slider_row(_fxlabel(name), lo, 100, val)
+            self._param_sliders[name] = (slider, vlab)
+            self._v.addWidget(row)
+
+        # --- flag ---
+        defon = _FX_DEFAULT_FLAGS.get(mode, set())
+        for name in self._spec.flags:
+            ck = QCheckBox(_fxlabel(name)); ck.setStyleSheet("color:#cdd6f4;")
+            ck.setChecked(bool(flags_in.get(name, name in defon)))
+            ck.toggled.connect(self._emit)
+            self._flag_checks[name] = ck
+            self._v.addWidget(ck)
+
+        self._loading = False
+
+    def export(self):
+        fx = {"params": {}, "flags": {}, "colors": [], "background": None}
+        for name, (sl, _) in self._param_sliders.items():
+            fx["params"][name] = int(sl.value())
+        for name, ck in self._flag_checks.items():
+            fx["flags"][name] = bool(ck.isChecked())
+        for key, w in self._color_widgets.items():
+            if key == 'background':
+                fx["background"] = w.rgb()
+            else:
+                fx["colors"].append(w.rgb())
+        if self._color_list is not None:
+            fx["colors"] = self._color_list.colors()
+        return fx
+
+    def display_color(self):
+        fx = self.export()
+        if fx["colors"]:
+            return tuple(fx["colors"][0])
+        if fx["background"] is not None:
+            return tuple(fx["background"])
+        return (0, 229, 255)
+
+    # -- helper interni --
+    def _emit(self, *a):
+        if not self._loading:
+            self.changed.emit()
+
+    def _labeled(self, text, widget):
+        host = QWidget(); row = QHBoxLayout(host)
+        row.setContentsMargins(0, 0, 0, 0)
+        lab = QLabel(text); lab.setFixedWidth(150); lab.setStyleSheet("color:#cdd6f4;")
+        row.addWidget(lab); row.addWidget(widget); row.addStretch()
+        return host
+
+    def _slider_row(self, text, lo, hi, val):
+        host = QWidget(); row = QHBoxLayout(host)
+        row.setContentsMargins(0, 0, 0, 0)
+        lab = QLabel(text); lab.setFixedWidth(150); lab.setStyleSheet("color:#cdd6f4;")
+        sl = QSlider(Qt.Horizontal); sl.setRange(lo, hi); sl.setValue(val)
+        vlab = QLabel(str(val)); vlab.setFixedWidth(32); vlab.setStyleSheet("color:#cdd6f4;")
+        sl.valueChanged.connect(lambda v, L=vlab: L.setText(str(v)))
+        sl.valueChanged.connect(self._emit)
+        row.addWidget(lab); row.addWidget(sl, 1); row.addWidget(vlab)
+        return host, sl, vlab
+
+    def _clear(self):
+        self._color_widgets = {}; self._color_list = None
+        self._param_sliders = {}; self._flag_checks = {}
+        while self._v.count():
+            it = self._v.takeAt(0)
+            w = it.widget()
+            if w is not None:
+                w.setParent(None)
+
+class Farbwerk360TabWidget(QWidget):
+    PRESETS = [
+        # Scala di grigi
+        ("#FFFFFF", "#EEEEEE", "#DDDDDD", "#CCCCCC", "#BBBBBB", "#AAAAAA", "#999999", "#888888", "#777777", "#666666", "#555555", "#444444", "#333333", "#222222", "#111111", "#000000"),
+        # Rossi, Arancioni e Marroni
+        ("#FFEBEB", "#FFC2C2", "#FF9999", "#FF7070", "#FF4747", "#FF1F1F", "#F00000", "#C20000", "#940000", "#660000", "#FFDAB9", "#FFA07A", "#FF7F50", "#FF4500", "#D2691E", "#8B4513"),
+        # Gialli e Verdi
+        ("#FFFFE0", "#FFFACD", "#FFD700", "#FFC100", "#FFA500", "#ADFF2F", "#7FFF00", "#32CD32", "#00FF00", "#228B22", "#008000", "#006400", "#9ACD32", "#6B8E23", "#808000", "#556B2F"),
+        # Ciani, Acqua e Azzurri
+        ("#E0FFFF", "#AFEEEE", "#7FFFD4", "#40E0D0", "#48D1CC", "#00CED1", "#00FFFF", "#00BFFF", "#1E90FF", "#4169E1", "#0000FF", "#0000CD", "#00008B", "#008080", "#008B8B", "#2F4F4F"),
+        # Viola, Magenta e Rosa
+        ("#E6E6FA", "#D8BFD8", "#DDA0DD", "#EE82EE", "#FF00FF", "#BA55D3", "#9932CC", "#9400D3", "#8A2BE2", "#4B0082", "#800080", "#8B008B", "#FFB6C1", "#FF69B4", "#FF1493", "#C71585"),
+    ]
+    NUM_CHANNELS = 4
+    MAX_STRIPS   = 20
+    STRIP_WIDTH  = 15
+    MAX_LED      = 90
+
+    def __init__(self, main_window, parent=None):
+        super().__init__(parent)
+        self.main_window = main_window
+        self._updating = False
+        self.global_brightness = int(global_config.get("fw360_brightness", 100))
+
+        self.strips = []
+        self._next_id = 1
+        self.selected_id = None
+        self._h, self._s, self._v = 0.0, 1.0, 1.0
+
+        self._save_timer = QTimer(self)
+        self._save_timer.setSingleShot(True)
+        self._save_timer.setInterval(250)
+        self._save_timer.timeout.connect(self._save_now)
+
+        self._load_from_config()
+
+        root = QVBoxLayout(self)
+
+        header_layout = QHBoxLayout()
+        lbl_icon = QLabel()
+        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "farbwerk360.svg")
+        lbl_icon.setPixmap(QIcon(icon_path).pixmap(24, 24))
+        header_layout.addWidget(lbl_icon)
+
+        lbl_title = QLabel(T('tab_farbwerk360'))
+        lbl_title.setStyleSheet("font-size: 24px; color: #00e5ff; font-weight: bold;")
+        header_layout.addWidget(lbl_title)
+        header_layout.addStretch()
+
+        root.addLayout(header_layout)
+        root.addSpacing(4)
+
+        lbl_sub = QLabel(T("fw360_subtitle"))
+        lbl_sub.setStyleSheet("color: #a6adc8; margin-bottom: 15px; font-size: 14px;")
+        lbl_sub.setWordWrap(True)
+        root.addWidget(lbl_sub)
+
+        lbl_help = QLabel(T("fw360_timeline_help"))
+        lbl_help.setStyleSheet("color: #a6adc8; font-size: 13px; font-style: italic; margin-bottom: 12px;")
+        lbl_help.setWordWrap(True)
+        root.addWidget(lbl_help)
+
+        # ===================== LAYOUT A COLONNA SINGOLA =====================
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("QScrollArea { border: none; }")
+        container = QWidget()
+        scroll.setWidget(container)
+        self.main_scroll_layout = QVBoxLayout(container)
+        self.main_scroll_layout.setSpacing(15)
+
+        self.timelines = {}
+        self.channel_sections = {}
+
+        for ch in range(1, self.NUM_CHANNELS + 1):
+            sec = CollapsibleSection(T("fw360_ch").format(i=ch))
+            self.channel_sections[ch] = sec
+
+            bar = QHBoxLayout()
+            btn_add = QPushButton(f" {T('fw360_add_strip')}")
+            icon_add = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "add.svg")
+            btn_add.setIcon(QIcon(get_colored_pixmap(icon_add, 16, "#cdd6f4")))
+            btn_add.setCursor(QCursor(Qt.PointingHandCursor))
+            btn_add.setStyleSheet(
+                "QPushButton { background-color: #313244; color: #cdd6f4;"
+                " border: 1px solid #45475a; border-radius: 6px; padding: 5px 12px; font-weight: bold; }"
+                "QPushButton:hover { background-color: #45475a; }")
+            btn_add.clicked.connect(lambda _=None, c=ch: self._add_strip(c, 1))
+
+            btn_clear = QPushButton(f" {T('fw360_clear_channel')}")
+            icon_trash = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "trash.svg")
+            btn_clear.setIcon(QIcon(get_colored_pixmap(icon_trash, 16, "#a6adc8")))
+            btn_clear.setCursor(QCursor(Qt.PointingHandCursor))
+            btn_clear.setStyleSheet(
+                "QPushButton { background-color: #181825; color: #a6adc8;"
+                " border: 1px solid #45475a; border-radius: 6px; padding: 5px 12px; }"
+                "QPushButton:hover { background-color: #45475a; color: #f38ba8; }")
+            btn_clear.clicked.connect(lambda _=None, c=ch: self._clear_channel(c))
+
+            bar.addWidget(btn_add)
+            bar.addWidget(btn_clear)
+            bar.addStretch()
+            sec.add_layout(bar)
+
+            tl = StripTimeline(ch)
+            tl.stripSelected.connect(self._on_strip_selected)
+            tl.stripMoved.connect(self._on_strip_moved)
+            tl.stripDeleted.connect(self._remove_strip)
+            tl.stripAdded.connect(self._on_strip_added)
+            self.timelines[ch] = tl
+            sec.add_widget(tl)
+            self.main_scroll_layout.addWidget(sec)
+
+        # ---- LUMINOSITÀ GLOBALE (Libera e sempre visibile) ----
+        g_row = QHBoxLayout()
+        lbl_gb = QLabel(T("fw360_brightness"))
+        lbl_gb.setStyleSheet("color: #cdd6f4; font-weight: bold;")
+        lbl_gb.setFixedWidth(170)
+        self.slider_gb = QSlider(Qt.Horizontal)
+        self.slider_gb.setRange(0, 100)
+        self.slider_gb.setValue(self.global_brightness)
+        self.lbl_gb_val = QLabel(f"{self.global_brightness} %")
+        self.lbl_gb_val.setFixedWidth(48)
+        self.lbl_gb_val.setStyleSheet("color: #cdd6f4; font-weight: bold;")
+        self.slider_gb.valueChanged.connect(self._global_brightness_changed)
+        g_row.addWidget(lbl_gb)
+        g_row.addWidget(self.slider_gb, 1)
+        g_row.addWidget(self.lbl_gb_val)
+
+        # Aggiungiamo la riga della luminosità direttamente al layout principale
+        self.main_scroll_layout.addLayout(g_row)
+        self.main_scroll_layout.addSpacing(15)
+
+        # ---- PREFERENZE (Sezione comprimibile per le spunte) ----
+        sec_pref = CollapsibleSection(T("fw360_general"))
+        lbl_pref_desc = QLabel(T("fw360_pref_desc"))
+        lbl_pref_desc.setStyleSheet("color: #ffc107; font-size: 13px; font-style: italic; margin-bottom: 12px;")
+        lbl_pref_desc.setWordWrap(True)
+        sec_pref.add_widget(lbl_pref_desc)
+
+        self.chk_apply_on_start = QCheckBox(T("fw360_apply_on_start"))
+        self.chk_apply_on_start.setStyleSheet("color: #cdd6f4;")
+        self.chk_apply_on_start.setChecked(global_config.get("fw360_apply_on_start", False))
+        self.chk_apply_on_start.toggled.connect(self._general_settings_changed)
+
+        self.chk_apply_on_start = QCheckBox(T("fw360_apply_on_start"))
+        self.chk_apply_on_start.setStyleSheet("color: #cdd6f4;")
+        self.chk_apply_on_start.setChecked(global_config.get("fw360_apply_on_start", False))
+        self.chk_apply_on_start.toggled.connect(self._general_settings_changed)
+
+        self.chk_apply_on_resume = QCheckBox(T("fw360_apply_on_resume"))
+        self.chk_apply_on_resume.setStyleSheet("color: #cdd6f4;")
+        self.chk_apply_on_resume.setChecked(global_config.get("fw360_apply_on_resume", False))
+        self.chk_apply_on_resume.toggled.connect(self._general_settings_changed)
+
+        sec_pref.add_widget(self.chk_apply_on_start)
+        sec_pref.add_widget(self.chk_apply_on_resume)
+
+        self.main_scroll_layout.addWidget(sec_pref)
+        self.main_scroll_layout.addStretch()
+
+        root.addWidget(scroll)
+
+        # ---- TASTO SALVATAGGIO ----
+        self.btn_save = QPushButton(f" {T('fw360_save_device')}")
+        icon_save = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "save.svg")
+        self.btn_save.setIcon(QIcon(get_colored_pixmap(icon_save, 16, "#11111b")))
+        self.btn_save.setObjectName("ActionBtn")
+        self.btn_save.setCursor(QCursor(Qt.PointingHandCursor))
+        self.btn_save.setToolTip(T("fw360_flash_tip"))
+        self.btn_save.clicked.connect(self.save_to_flash)
+        root.addWidget(self.btn_save)
+
+        # COSTRUZIONE DEL PANNELLO EDITOR DINAMICO
+        self._build_dynamic_editor()
+
+        self._refresh_all_timelines()
+        self._refresh_editor()
+
+    def _make_spin(self, color):
+        sp = QSpinBox(); sp.setRange(0, 255)
+        sp.setStyleSheet(f"color: {color}; font-weight: bold;")
+        sp.valueChanged.connect(self._rgb_changed)
+        return sp
+
+    def _general_settings_changed(self):
+        """Salva lo stato delle spunte per l'avvio e la sospensione."""
+        global_config["fw360_apply_on_start"] = self.chk_apply_on_start.isChecked()
+        global_config["fw360_apply_on_resume"] = self.chk_apply_on_resume.isChecked()
+        save_config(global_config)
+
+    def apply_silent_startup(self):
+        """Applica la configurazione corrente alla periferica in modo volatile."""
+        try:
+            eng = self._apply_state_to_engine()
+            eng.commit()
+        except Exception as e:
+            print(f"Errore HID durante l'applicazione silente di Farbwerk 360: {e}")
+
+    def _load_from_config(self):
+        for item in global_config.get("fw360_strips", []):
+            try:
+                ch = int(item["channel"]); st = int(item["start"])
+                r, g, b = int(item["r"]), int(item["g"]), int(item["b"])
+            except (KeyError, ValueError, TypeError):
+                continue
+            ch = max(1, min(self.NUM_CHANNELS, ch))
+            st = max(1, min(self.MAX_LED - self.STRIP_WIDTH + 1, st))
+            strip = {"id": self._next_id, "channel": ch, "start": st,
+                     "r": r & 255, "g": g & 255, "b": b & 255,
+                     "mode": item.get("mode", "static")}
+            fx = item.get("fx")
+            if isinstance(fx, dict) and strip["mode"] != "static":
+                strip["fx"] = fx
+            self.strips.append(strip)
+            self._next_id += 1
+        if self.strips and self.selected_id is None:
+            self.selected_id = self.strips[0]["id"]
+
+    def _schedule_save(self):
+        self._save_timer.start()
+
+    def _save_now(self):
+        out = []
+        for s in self.strips:
+            d = {"channel": s["channel"], "start": s["start"],
+                 "r": s["r"], "g": s["g"], "b": s["b"],
+                 "mode": s.get("mode", "static")}
+            if s.get("mode", "static") != "static" and "fx" in s:
+                d["fx"] = s["fx"]
+            out.append(d)
+        global_config["fw360_strips"] = out
+        global_config["fw360_brightness"] = self.global_brightness
+        try:
+            save_config(global_config)
+        except Exception:
+            pass
+        # anteprima live sul dispositivo (se collegato)
+        try:
+            eng = self.main_window.fw360_engine
+            if eng is not None and eng.is_connected:
+                self._apply_state_to_engine()
+                eng.commit()
+        except Exception:
+            pass
+
+    def _build_dynamic_editor(self):
+        """Costruisce l'editor dinamico, spostato via layout."""
+        self.dynamic_editor_host = QFrame()
+        self.dynamic_editor_host.setVisible(False)
+        self.dynamic_editor_host.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum) # FIX: Permette al frame di espandersi
+        self.dynamic_editor_host.setStyleSheet(
+            "QFrame#DynEditor { background-color: rgba(30, 30, 46, 120); "
+            "border: 1px solid rgba(255, 255, 255, 15); border-radius: 8px; }"
+        )
+        self.dynamic_editor_host.setObjectName("DynEditor")
+
+        dyn_layout = QVBoxLayout(self.dynamic_editor_host)
+        dyn_layout.setContentsMargins(15, 15, 15, 15)
+        dyn_layout.setSpacing(15)
+
+        # 1. Toolbar (Mode + duplicate + remove + hide)
+        toolbar_row = QHBoxLayout()
+        lab_mode = QLabel(_fxlabel("mode"))
+        lab_mode.setStyleSheet("color: #cdd6f4; font-weight: bold; border: none; background: transparent;")
+        self.mode_combo = QComboBox()
+        self.mode_combo.setStyleSheet("QComboBox { background: #313244; color: #cdd6f4; border-radius: 4px; padding: 4px 10px; font-weight: bold; }")
+        for name in _FX_ORDER:
+            self.mode_combo.addItem(_fxlabel(name), name)
+        self.mode_combo.currentIndexChanged.connect(self._on_mode_changed)
+        toolbar_row.addWidget(lab_mode)
+        toolbar_row.addWidget(self.mode_combo)
+
+        toolbar_row.addStretch()
+
+        self.btn_toggle_settings = QPushButton()
+        self.btn_toggle_settings.setIcon(QIcon(os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "settings.svg")))
+        self.btn_toggle_settings.setFixedSize(32, 32)
+        self.btn_toggle_settings.setCursor(QCursor(Qt.PointingHandCursor))
+        self.btn_toggle_settings.setStyleSheet("QPushButton { background-color: #313244; border-radius: 6px; } QPushButton:hover { background-color: #45475a; }")
+        self.btn_toggle_settings.clicked.connect(self._toggle_settings_panel)
+
+        self.btn_dup = QPushButton()
+        self.btn_dup.setIcon(QIcon(os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "duplicate.svg")))
+        self.btn_dup.setFixedSize(32, 32)
+        self.btn_dup.setCursor(QCursor(Qt.PointingHandCursor))
+        self.btn_dup.setStyleSheet("QPushButton { background-color: #313244; border-radius: 6px; } QPushButton:hover { background-color: #45475a; }")
+        self.btn_dup.clicked.connect(self._duplicate_selected)
+
+        self.btn_remove = QPushButton()
+        self.btn_remove.setIcon(QIcon(os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "close.svg")))
+        self.btn_remove.setFixedSize(32, 32)
+        self.btn_remove.setCursor(QCursor(Qt.PointingHandCursor))
+        self.btn_remove.setStyleSheet("QPushButton { background-color: #313244; border-radius: 6px; } QPushButton:hover { background-color: #f38ba8; }")
+        self.btn_remove.clicked.connect(self._remove_selected)
+
+        toolbar_row.addWidget(self.btn_toggle_settings)
+        toolbar_row.addWidget(self.btn_dup)
+        toolbar_row.addWidget(self.btn_remove)
+
+        dyn_layout.addLayout(toolbar_row)
+
+        # 2. Settings Panel
+        self.settings_panel = QWidget()
+        self.settings_panel.setVisible(False) # Chiuso di default, come Aquasuite
+        self.settings_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum) # FIX: Permette al pannello setting di spingere in basso
+        self.settings_panel.setStyleSheet("border: none; background: transparent;")
+        settings_layout = QVBoxLayout(self.settings_panel)
+        settings_layout.setContentsMargins(0, 0, 0, 0)
+
+        # A) Effect Editor Dinamico
+        self.effect_editor = EffectEditor()
+        self.effect_editor.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum) # FIX
+        self.effect_editor.changed.connect(self._on_effect_changed)
+        settings_layout.addWidget(self.effect_editor)
+
+        # B) Static Editor
+        self.editor_host = QWidget()
+        self.editor_host.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum) # FIX
+        self.editor_host.setMinimumHeight(220) # Forza un'altezza minima per ruota colori e palette
+
+        editor = QHBoxLayout(self.editor_host)
+        editor.setContentsMargins(0, 0, 0, 0)
+
+        left = QVBoxLayout()
+        self.wheel = ColorWheel(170)
+        self.wheel.changed.connect(self._wheel_changed)
+        left.addWidget(self.wheel, alignment=Qt.AlignHCenter)
+        val_row = QHBoxLayout()
+        lbl_v = QLabel(T("fw360_value")); lbl_v.setStyleSheet("color: #cdd6f4;")
+        self.slider_v = QSlider(Qt.Horizontal)
+        self.slider_v.setRange(0, 100); self.slider_v.setValue(100)
+        self.slider_v.valueChanged.connect(self._value_changed)
+        self.lbl_v_val = QLabel("100%"); self.lbl_v_val.setFixedWidth(42)
+        self.lbl_v_val.setStyleSheet("color: #cdd6f4;")
+        val_row.addWidget(lbl_v); val_row.addWidget(self.slider_v, 1); val_row.addWidget(self.lbl_v_val)
+        left.addLayout(val_row)
+        editor.addLayout(left)
+        editor.addSpacing(18)
+
+        mid = QVBoxLayout()
+        self.swatch = QFrame()
+        self.swatch.setFixedSize(60, 60)
+        self.swatch.setStyleSheet("border-radius: 6px; border: 1px solid #45475a; background:#00e5ff;")
+        mid.addWidget(self.swatch)
+        self.spin_r = self._make_spin("#ff5555")
+        self.spin_g = self._make_spin("#50fa7b")
+        self.spin_b = self._make_spin("#00e5ff")
+
+        for lblkey, sp in (("fw360_r", self.spin_r), ("fw360_g", self.spin_g), ("fw360_b", self.spin_b)):
+            rr = QHBoxLayout()
+            lab = QLabel(T(lblkey))
+            lab.setMinimumWidth(45)
+            lab.setStyleSheet("color: #cdd6f4; font-weight: bold;")
+            rr.addWidget(lab)
+            rr.addWidget(sp)
+            mid.addLayout(rr)
+
+        hexrow = QHBoxLayout()
+        lab_hex = QLabel("#")
+        lab_hex.setMinimumWidth(45)
+        lab_hex.setStyleSheet("color: #cdd6f4; font-weight: bold;")
+        self.edit_hex = QLineEdit("00E5FF")
+        self.edit_hex.setMaxLength(9)
+        self.edit_hex.setFixedWidth(110)
+        self.edit_hex.editingFinished.connect(self._hex_changed)
+        hexrow.addWidget(lab_hex)
+        hexrow.addWidget(self.edit_hex)
+        mid.addLayout(hexrow)
+        mid.addStretch()
+        editor.addLayout(mid)
+        editor.addSpacing(18)
+
+        pal = QGridLayout()
+        pal.setSpacing(2)
+        lbl_pal = QLabel(T("fw360_palette"))
+        lbl_pal.setStyleSheet("color: #cdd6f4;")
+
+        # Col-span dinamico che si adatta a 12 colonne
+        pal.addWidget(lbl_pal, 0, 0, 1, len(self.PRESETS[0]))
+
+        for r_i, rowcols in enumerate(self.PRESETS):
+            for c_i, hexv in enumerate(rowcols):
+                b = QPushButton()
+                b.setFixedSize(24, 24)
+                b.setCursor(QCursor(Qt.PointingHandCursor))
+                b.setStyleSheet(f"background-color: {hexv}; border: 1px solid #45475a; border-radius: 3px;")
+                b.clicked.connect(lambda _=None, hv=hexv: self._apply_preset_hex(hv))
+                pal.addWidget(b, r_i + 1, c_i)
+
+        pal_host = QWidget()
+        pal_host.setLayout(pal)
+        editor.addWidget(pal_host, alignment=Qt.AlignTop)
+        editor.addStretch()
+
+        settings_layout.addWidget(self.editor_host)
+        dyn_layout.addWidget(self.settings_panel)
+
+    def _on_mode_changed(self, idx):
+        if self._updating:
+            return
+        s = self._strip_by_id(self.selected_id)
+        if s is None:
+            return
+        mode = self.mode_combo.itemData(idx)
+        if mode is None or mode == s.get("mode", "static"):
+            return
+        s["mode"] = mode
+        if mode == "static":
+            s.pop("fx", None)
+        else:
+            self.effect_editor.set_effect(mode, None)
+            s["fx"] = self.effect_editor.export()
+            r, g, b = self.effect_editor.display_color()
+            s["r"], s["g"], s["b"] = r, g, b
+        self._refresh_editor()
+        self._refresh_timeline(s["channel"])
+        self._schedule_save()
+
+    def _on_effect_changed(self):
+        s = self._strip_by_id(self.selected_id)
+        if s is None or s.get("mode", "static") == "static":
+            return
+        s["fx"] = self.effect_editor.export()
+        r, g, b = self.effect_editor.display_color()
+        s["r"], s["g"], s["b"] = r, g, b
+        self._refresh_timeline(s["channel"])
+        self._schedule_save()
+
+    def _effect_kwargs(self, strip):
+        mode = strip.get("mode", "static")
+        fx = strip.get("fx", {}) or {}
+        call = dict(fx.get("params", {}) or {})
+        call.update(fx.get("flags", {}) or {})
+        cols = [tuple(c) for c in (fx.get("colors") or [])]
+        kind = EFFECTS[mode].colors[0]
+        if kind == 'point_strip':
+            if len(cols) >= 1:
+                call["point_color"] = cols[0]
+            if len(cols) >= 2:
+                call["strip_color"] = cols[1]
+        else:
+            if cols:
+                call["colors"] = cols
+            if fx.get("background") is not None:
+                call["background"] = tuple(fx["background"])
+        return call
+
+    # ---------------------------------------------------------------- helper
+    def _strip_by_id(self, sid):
+        for s in self.strips:
+            if s["id"] == sid:
+                return s
+        return None
+
+    def _channel_strips(self, ch):
+        return [s for s in self.strips if s["channel"] == ch]
+
+    def _refresh_all_timelines(self):
+        for ch, tl in self.timelines.items():
+            tl.set_strips(self._channel_strips(ch), self.selected_id)
+
+    def _refresh_timeline(self, ch):
+        self.timelines[ch].set_strips(self._channel_strips(ch), self.selected_id)
+
+    # ------------------------------------------------------ creazione / rimozione
+    def _default_color(self):
+        s = self._strip_by_id(self.selected_id)
+        if s is not None:
+            return s["r"], s["g"], s["b"]
+        return 0, 229, 255
+
+    def _add_strip(self, channel, start):
+        if len(self.strips) >= self.MAX_STRIPS:
+            QMessageBox.information(self, T("fw360_strips"), T("fw360_max_strips"))
+            return
+        r, g, b = self._default_color()
+        sid = self._next_id; self._next_id += 1
+        self.strips.append({"id": sid, "channel": int(channel),
+                            "start": int(start), "r": r, "g": g, "b": b,
+                            "mode": "static"})
+        self.selected_id = sid
+        self._refresh_all_timelines()
+        self._refresh_editor()
+        self._schedule_save()
+
+    def _on_strip_added(self, channel, start):
+        self._add_strip(channel, start)
+
+    def _remove_strip(self, sid):
+        s = self._strip_by_id(sid)
+        if s is None:
+            return
+        self.strips.remove(s)
+        if self.selected_id == sid:
+            self.selected_id = None
+        self._refresh_all_timelines()
+        self._refresh_editor()
+        self._schedule_save()
+
+    def _remove_selected(self):
+        if self.selected_id is not None:
+            self._remove_strip(self.selected_id)
+
+    def _duplicate_selected(self):
+        s = self._strip_by_id(self.selected_id)
+        if s is None:
+            return
+        if len(self.strips) >= self.MAX_STRIPS:
+            QMessageBox.information(self, T("fw360_strips"), T("fw360_max_strips"))
+            return
+        sid = self._next_id
+        self._next_id += 1
+        new = {"id": sid, "channel": s["channel"],
+               "start": min(self.MAX_LED - self.STRIP_WIDTH + 1, int(s["start"]) + self.STRIP_WIDTH),
+               "r": s["r"], "g": s["g"], "b": s["b"],
+               "mode": s.get("mode", "static")}
+        fx = s.get("fx")
+        if isinstance(fx, dict):
+            new["fx"] = {
+                "params": dict(fx.get("params", {}) or {}),
+                "flags": dict(fx.get("flags", {}) or {}),
+                "colors": [tuple(c) for c in (fx.get("colors") or [])],
+                "background": tuple(fx["background"]) if fx.get("background") is not None else None,
+            }
+        self.strips.append(new)
+        self.selected_id = sid
+        self._refresh_all_timelines()
+        self._refresh_editor()
+        self._schedule_save()
+
+    def _clear_channel(self, ch):
+        removed = self._channel_strips(ch)
+        if not removed:
+            return
+        ids = {s["id"] for s in removed}
+        self.strips = [s for s in self.strips if s["id"] not in ids]
+        if self.selected_id in ids:
+            self.selected_id = None
+        self._refresh_all_timelines()
+        self._refresh_editor()
+        self._schedule_save()
+
+    # ------------------------------------------------------ selezione / spostamento
+    def _on_strip_selected(self, sid):
+        self.selected_id = sid
+        self._refresh_all_timelines()
+        self._refresh_editor()
+
+    def _on_strip_moved(self, sid, new_start):
+        s = self._strip_by_id(sid)
+        if s is None:
+            return
+        s["start"] = int(new_start)
+        self._refresh_timeline(s["channel"])
+        self._schedule_save()
+
+    # ---------------------------------------------------------------- editor
+    def _toggle_settings_panel(self):
+        vis = not self.settings_panel.isVisible()
+        self.settings_panel.setVisible(vis)
+
+    def _refresh_editor(self):
+        s = self._strip_by_id(self.selected_id)
+        has = s is not None
+        self.dynamic_editor_host.setVisible(has)
+
+        if not has:
+            return
+
+        # Sposta l'editor all'interno del layout del canale attualmente selezionato
+        target_layout = self.channel_sections[s["channel"]].body_layout
+        if self.dynamic_editor_host.parentWidget() != self.channel_sections[s["channel"]].body:
+            target_layout.addWidget(self.dynamic_editor_host)
+
+        mode = s.get("mode", "static")
+        self._updating = True
+        i = self.mode_combo.findData(mode)
+        if i >= 0:
+            self.mode_combo.setCurrentIndex(i)
+        self._updating = False
+
+        if mode == "static":
+            self.effect_editor.setVisible(False)
+            self.editor_host.setVisible(True)
+            self._h, self._s, self._v = self._rgb_to_hsv(s["r"], s["g"], s["b"])
+            self._load_editor_widgets()
+        else:
+            self.editor_host.setVisible(False)
+            self.effect_editor.setVisible(True)
+            self.effect_editor.set_effect(mode, s.get("fx"))
+
+    def _load_editor_widgets(self):
+        self._updating = True
+        self.wheel.set_hs(self._h, self._s)
+        self.slider_v.setValue(int(round(self._v * 100)))
+        self.lbl_v_val.setText(f"{int(round(self._v*100))}%")
+        r, g, b = self._hsv_to_rgb(self._h, self._s, self._v)
+        self.spin_r.setValue(r); self.spin_g.setValue(g); self.spin_b.setValue(b)
+        self.edit_hex.setText(f"{r:02X}{g:02X}{b:02X}")
+        self._update_swatch(r, g, b)
+        self._updating = False
+
+    @staticmethod
+    def _hsv_to_rgb(h, s, v):
+        r, g, b = colorsys.hsv_to_rgb(h, s, v)
+        return int(round(r * 255)), int(round(g * 255)), int(round(b * 255))
+
+    def _rgb_to_hsv(self, r, g, b):
+        h, s, v = colorsys.rgb_to_hsv(r / 255.0, g / 255.0, b / 255.0)
+        if s <= 0.0001:
+            h = self._h  # su un grigio mantieni la tonalita' attuale della ruota
+        return h, s, v
+
+    def _update_swatch(self, r, g, b):
+        self.swatch.setStyleSheet(
+            f"border-radius: 6px; border: 1px solid #45475a; background: rgb({r},{g},{b});")
+
+    def _commit_color_to_strip(self):
+        s = self._strip_by_id(self.selected_id)
+        if s is None:
+            return
+        s["r"], s["g"], s["b"] = self._hsv_to_rgb(self._h, self._s, self._v)
+        self._refresh_timeline(s["channel"])
+        self._schedule_save()
+
+    # -- callback della ruota / rgb / hex / valore
+    def _wheel_changed(self):
+        if self._updating:
+            return
+        self._h = self.wheel.hue(); self._s = self.wheel.sat()
+        self._sync_after_change(skip_wheel=True)
+
+    def _value_changed(self, val):
+        self.lbl_v_val.setText(f"{val}%")
+        if self._updating:
+            return
+        self._v = val / 100.0
+        self._sync_after_change(skip_value=True)
+
+    def _rgb_changed(self, _=None):
+        if self._updating:
+            return
+        self._h, self._s, self._v = self._rgb_to_hsv(
+            self.spin_r.value(), self.spin_g.value(), self.spin_b.value())
+        self._sync_after_change(skip_rgb=True)
+
+    def _hex_changed(self):
+        if self._updating:
+            return
+        rgb = self._parse_hex(self.edit_hex.text())
+        if rgb is None:
+            self._load_editor_widgets()
+            return
+        self._h, self._s, self._v = self._rgb_to_hsv(*rgb)
+        self._sync_after_change(skip_hex=True)
+
+    def _apply_preset_hex(self, hexv):
+        if self.selected_id is None:
+            return
+        rgb = self._parse_hex(hexv)
+        if rgb is None:
+            return
+        self._h, self._s, self._v = self._rgb_to_hsv(*rgb)
+        self._sync_after_change()
+
+    def _sync_after_change(self, skip_wheel=False, skip_value=False,
+                           skip_rgb=False, skip_hex=False):
+        r, g, b = self._hsv_to_rgb(self._h, self._s, self._v)
+        self._updating = True
+        if not skip_wheel:
+            self.wheel.set_hs(self._h, self._s)
+        if not skip_value:
+            self.slider_v.setValue(int(round(self._v * 100)))
+            self.lbl_v_val.setText(f"{int(round(self._v*100))}%")
+        if not skip_rgb:
+            self.spin_r.setValue(r); self.spin_g.setValue(g); self.spin_b.setValue(b)
+        if not skip_hex:
+            self.edit_hex.setText(f"{r:02X}{g:02X}{b:02X}")
+        self._update_swatch(r, g, b)
+        self._updating = False
+        self._commit_color_to_strip()
+
+    def _global_brightness_changed(self, val):
+        self.global_brightness = val
+        self.lbl_gb_val.setText(f"{val} %")
+        self._schedule_save()
+
+    @staticmethod
+    def _parse_hex(s):
+        s = s.strip().lstrip('#').upper()
+        if len(s) == 8:      # AARRGGBB (formato Aquasuite): scarta l'alpha
+            s = s[2:]
+        if len(s) == 6:
+            try:
+                return int(s[0:2], 16), int(s[2:4], 16), int(s[4:6], 16)
+            except ValueError:
+                return None
+        return None
+
+    # ---------------------------------------------------------------- invio
+    def _apply_state_to_engine(self):
+        eng = self.main_window.fw360_engine
+        if not eng.is_connected:
+            eng.connect()
+        eng.all_off()
+        eng.clear_strips()
+        for s in self.strips:
+            mode = s.get("mode", "static")
+            if mode == "static":
+                eng.add_strip(s["channel"], s["start"], s["r"], s["g"], s["b"])
+            else:
+                try:
+                    eng.add_effect(s["channel"], s["start"], mode, **self._effect_kwargs(s))
+                except Exception:
+                    eng.add_strip(s["channel"], s["start"], s["r"], s["g"], s["b"])
+        eng.set_brightness_percent(self.global_brightness)
+        return eng
+
+    def _flash_button(self, btn, ok, ok_key, reset_key):
+        icon_check = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "check.svg")
+        icon_save = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "save.svg")
+        if ok:
+            btn.setText(f" {T(ok_key)}")
+            btn.setIcon(QIcon(get_colored_pixmap(icon_check, 16, "#11111b")))
+            btn.setStyleSheet("background-color: #00e676 !important; color: #11111b !important; font-weight: bold;")
+        else:
+            btn.setText(f" {T('fw360_io_error')}")
+            btn.setIcon(QIcon())
+            btn.setStyleSheet("background-color: #ff3333 !important; color: #ffffff !important; font-weight: bold;")
+
+        QTimer.singleShot(2000, lambda: (btn.setText(f" {T(reset_key)}"), btn.setIcon(QIcon(get_colored_pixmap(icon_save, 16, "#11111b"))), btn.setStyleSheet("")))
+
+    def apply_to_device(self):
+        """Invia le strisce alla scheda come anteprima dal vivo (non permanente)."""
+        eng = self._apply_state_to_engine()
+        self._flash_button(self.btn_save, True, "fw360_flash_ok", "fw360_save_device")
+
+    def apply_silent_startup(self):
+        """
+        Applica la configurazione corrente alla periferica in modo volatile.
+        Eseguito all'avvio del demone/interfaccia per ripristinare lo stato.
+        """
+        try:
+            eng = self._apply_state_to_engine()
+            eng.commit()
+        except Exception as e:
+            print(f"Errore di comunicazione HID in apply_silent_startup: {e}")
+
+    def save_to_flash(self):
+        """Applica le strisce e le rende PERMANENTI nella memoria della scheda."""
+        eng = self._apply_state_to_engine()
+        ok = eng.commit() and eng.save_to_flash()
+        self._flash_button(self.btn_save, ok, "fw360_flash_ok", "fw360_save_device")

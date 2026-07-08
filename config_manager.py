@@ -21,9 +21,9 @@ CONFIG_DIR = os.path.expanduser("~/.config/aquacontrol")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "aquacontrol.json")
 
 def load_config():
-    """Deserializes JSON settings file. Provides default dictionary if missing."""
+    """Deserializza il file di impostazioni JSON. Fornisce un dizionario predefinito se il file è assente."""
     default_config = {
-        "lang": "it",
+        "lang": "en",
         "use_fahrenheit": False,
         "sensors": {},
         "channels_names": {},
@@ -35,7 +35,9 @@ def load_config():
         "autoswitch_enabled": False,
         "process_profiles": {},
         "security": {},
-        "osd_config": {}
+        "osd_config": {},
+        "fw360_strips": [],
+        "fw360_brightness": 100,
     }
     if os.path.exists(CONFIG_FILE):
         try:
@@ -48,7 +50,7 @@ def load_config():
     return default_config
 
 def save_config(cfg):
-    """Serializes the current settings dictionary to the user configuration file."""
+    """Serializza il dizionario delle impostazioni correnti nel file di configurazione dell'utente."""
     os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
     with open(CONFIG_FILE, "w") as f:
         json.dump(cfg, f, indent=4)

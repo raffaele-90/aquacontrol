@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <g fill="none" stroke-width="28" stroke-dasharray="4.7 215">
+    <circle cx="50" cy="50" r="34" stroke="#ff0000" transform="rotate(0, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#ff2000" transform="rotate(7.5, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#ff4000" transform="rotate(15.0, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#ff6000" transform="rotate(22.5, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#ff8000" transform="rotate(30.0, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#ffa000" transform="rotate(37.5, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#ffc000" transform="rotate(45.0, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#ffe000" transform="rotate(52.5, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#ffff00" transform="rotate(60.0, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#dfff00" transform="rotate(67.5, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#bfff00" transform="rotate(75.0, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#9fff00" transform="rotate(82.5, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#80ff00" transform="rotate(90.0, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#60ff00" transform="rotate(97.5, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#40ff00" transform="rotate(105.0, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#20ff00" transform="rotate(112.5, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#00ff00" transform="rotate(120.0, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#00ff20" transform="rotate(127.5, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#00ff40" transform="rotate(135.0, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#00ff60" transform="rotate(142.5, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#00ff80" transform="rotate(150.0, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#00ffa0" transform="rotate(157.5, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#00ffc0" transform="rotate(165.0, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#00ffe0" transform="rotate(172.5, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#00ffff" transform="rotate(180.0, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#00dfff" transform="rotate(187.5, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#00bfff" transform="rotate(195.0, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#009fff" transform="rotate(202.5, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#0080ff" transform="rotate(210.0, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#0060ff" transform="rotate(217.5, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#0040ff" transform="rotate(225.0, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#0020ff" transform="rotate(232.5, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#0000ff" transform="rotate(240.0, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#2000ff" transform="rotate(247.5, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#4000ff" transform="rotate(255.0, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#6000ff" transform="rotate(262.5, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#8000ff" transform="rotate(270.0, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#a000ff" transform="rotate(277.5, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#c000ff" transform="rotate(285.0, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#e000ff" transform="rotate(292.5, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#ff00ff" transform="rotate(300.0, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#ff00df" transform="rotate(307.5, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#ff00bf" transform="rotate(315.0, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#ff009f" transform="rotate(322.5, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#ff0080" transform="rotate(330.0, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#ff0060" transform="rotate(337.5, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#ff0040" transform="rotate(345.0, 50, 50)" />
+    <circle cx="50" cy="50" r="34" stroke="#ff0020" transform="rotate(352.5, 50, 50)" />
+  </g>
+  <circle cx="50" cy="50" r="20" fill="#999999" />
+</svg>

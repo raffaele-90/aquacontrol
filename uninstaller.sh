@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# AquaControl - Uninstaller Universale Linux
+# AquaControl - Uninstaller Universale Linux (v4.0)
 
 if [ "$EUID" -ne 0 ]; then
   echo "ERRORE: Per disinstallare AquaControl, esegui lo script come root (es. sudo ./uninstaller.sh)"

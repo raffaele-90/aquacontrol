@@ -18,10 +18,10 @@ import threading
 import time
 import subprocess
 import datetime
-import os
 import re
 import glob
-import time
+import os
+import json
 from collections import deque
 
 try:
@@ -32,9 +32,9 @@ except ImportError:
 
 class AquaeroEngine:
     """
-    Core hardware abstraction layer for AquaControl.
-    Handles device mapping, generic Linux hwmon scanning, PWM calculations,
-    Virtual Sensors (Delta T), PID logic, and Hardware Mapping (Min Power/Boost).
+    Livello di astrazione hardware fondamentale per AquaControl.
+    Gestisce la mappatura dei dispositivi, la scansione generica hwmon di Linux, i calcoli PWM,
+    i sensori virtuali (Delta T), la logica PID e la mappatura hardware (potenza minima/Boost).
     """
     def __init__(self):
         self.path = self._find_aquaero_hwmon()
@@ -68,8 +68,8 @@ class AquaeroEngine:
         self._map_hardware()
 
     def _init_system_sensors(self):
-        """Scans and caches available system sensors via hwmon and NVML."""
-        # 1. Standard Linux HWMON Scanning
+        """Scansiona e memorizza nella cache i sensori di sistema disponibili tramite hwmon e NVML."""
+        # 1. Scansione HWMON standard di Linux
         for hwmon in glob.glob("/sys/class/hwmon/hwmon*"):
             try:
                 with open(os.path.join(hwmon, "name"), "r") as f:
@@ -82,7 +82,7 @@ class AquaeroEngine:
 
             hwmon_id = os.path.basename(hwmon)
 
-            # Temperature Sensors
+            # Sensori di temperatura
             for t_input in sorted(glob.glob(os.path.join(hwmon, "temp*_input"))):
                 base_name = os.path.basename(t_input).split('_')[0]
                 label_path = os.path.join(hwmon, f"{base_name}_label")
@@ -102,7 +102,7 @@ class AquaeroEngine:
                 self.sys_sensors_meta[s_id] = {'label': sensor_label, 'type': 'temp'}
                 self.sys_sensors_paths[s_id] = t_input
 
-            # Voltage Sensors
+            # Sensori di voltaggio
             for in_input in sorted(glob.glob(os.path.join(hwmon, "in*_input"))):
                 base_name = os.path.basename(in_input).split('_')[0]
                 label_path = os.path.join(hwmon, f"{base_name}_label")
@@ -122,14 +122,14 @@ class AquaeroEngine:
                 self.sys_sensors_meta[s_id] = {'label': f"{sensor_label} Volts", 'type': 'volt'}
                 self.sys_sensors_paths[s_id] = in_input
 
-            # GPU Load (sysfs generic)
+            # Carico GPU (sysfs generico)
             device_busy_path = os.path.join(hwmon, "device", "gpu_busy_percent")
             if os.path.exists(device_busy_path):
                 s_id = f"sys_{hwmon_id}_load"
                 self.sys_sensors_meta[s_id] = {'label': f"{hw_name} (Load)", 'type': 'load'}
                 self.sys_sensors_paths[s_id] = device_busy_path
 
-        # 2. NVML Initialization for NVIDIA GPUs
+        # 2. Inizializzazione NVML per GPU NVIDIA
         if NVML_AVAILABLE:
             try:
                 pynvml.nvmlInit()
@@ -152,11 +152,11 @@ class AquaeroEngine:
                 self.nvml_initialized = False
 
     def get_available_system_sensors(self):
-        """Returns a dictionary mapping sensor IDs to UI labels."""
+        """Restituisce un dizionario che associa gli ID dei sensori alle etichette dell'interfaccia utente."""
         return {s_id: meta['label'] for s_id, meta in self.sys_sensors_meta.items()}
 
     def get_system_telemetry(self):
-        """Polls current metrics for all registered hwmon/nvml sensors."""
+        """Interroga le metriche correnti per tutti i sensori hwmon/nvml registrati."""
         sys_data = {}
 
         for s_id, path in self.sys_sensors_paths.items():
@@ -184,7 +184,7 @@ class AquaeroEngine:
         return sys_data
 
     def _find_aquaero_hwmon(self):
-        """Locates the dynamic hwmon path assigned to the Aquaero device."""
+        """Individua il percorso hwmon dinamico assegnato al dispositivo Aquaero."""
         for name_file in glob.glob("/sys/class/hwmon/hwmon*/name"):
             try:
                 with open(name_file, 'r') as f:
@@ -194,7 +194,7 @@ class AquaeroEngine:
         return None
 
     def _map_hardware(self):
-        """Maps specific Aquaero proprietary channels (PWM, Fan, Volt, Temp)."""
+        """Associa specifici canali proprietari Aquaero (PWM, Fan, Volt, Temp)."""
         self.volt_channels = {}
         self.flow_channels = {}
 
@@ -238,7 +238,6 @@ class AquaeroEngine:
                 fallback_file = os.path.join(self.path, f"in{i-1}_input")
                 if os.path.exists(fallback_file):
                     self.volt_channels[i] = fallback_file
-        # --- FINE MODIFICA ---
 
         for temp_file in glob.glob(os.path.join(self.path, "temp*_input")):
             sensor_id = os.path.basename(temp_file).split('_')[0]
@@ -321,13 +320,11 @@ class AquaeroEngine:
             aqua_rpms[ch_id] = self.get_fan_rpm(ch_id)
             aqua_volts[ch_id] = self.get_fan_volt(ch_id)
 
-        # --- LETTURA SENSORI DI FLUSSO ---
         aqua_flows = {}
         for flow_id in range(1, 3):
             flow_val = self.get_flow_rate(flow_id)
             aqua_flows[flow_id] = flow_val
             self._update_history(f"flow_rate_{flow_id}", flow_val)
-        # ---------------------------------
 
         all_temps = {**sys_data, **aqua_temps}
 
@@ -376,7 +373,7 @@ class AquaeroEngine:
 
     # NOTA: I parametri p_min e p_max qui rappresentano la logica visiva (es 0-100), non l'hardware
     def calculate_pwm_auto(self, temp, t_min, t_max, p_min, p_max, gamma=1.0):
-        """Calculates logical PWM target using a polynomial curve (returns 0-100%)."""
+        """Calcola il valore target PWM logico utilizzando una curva polinomiale (restituisce un valore compreso tra 0 e 100%)."""
         if temp is None: return 0.0
         if temp <= t_min: return float(p_min)
         if temp >= t_max: return float(p_max)
@@ -387,7 +384,7 @@ class AquaeroEngine:
         return p_min + (p_max - p_min) * curve_factor
 
     def calculate_pwm_manual(self, temp, curve_points):
-        """Calculates logical PWM target via linear interpolation (returns 0-100%)."""
+        """Calcola il valore target logico del PWM tramite interpolazione lineare (restituisce un valore tra 0 e 100%)."""
         if temp is None or not curve_points: return 0.0
 
         sorted_points = sorted(curve_points, key=lambda p: p[0])
@@ -406,7 +403,7 @@ class AquaeroEngine:
 
 
     def calculate_pwm_pid(self, channel, current_temp, target_temp, pid_mode="Normal", custom_kp=0.0, custom_ki=0.0, custom_kd=0.0):
-        """Calculates logical PWM target using PID (returns 0-100%)."""
+        """Calcola il valore target logico del PWM utilizzando un PID (restituisce un valore tra 0 e 100%)."""
         if current_temp is None: return 0.0
 
         current_time = time.time()
@@ -486,7 +483,7 @@ class AquaeroEngine:
         return byte_val, hardware_percent
 
     def set_fan_speed(self, channel, pwm_value):
-        """Writes PWM target to sysfs. Implements delta checking to reduce USB bus usage."""
+        """Scrive il valore target PWM in sysfs. Implementa un controllo del delta per ridurre l'utilizzo del bus USB."""
         if channel in self.pwm_channels:
             try:
                 pwm_value = int(max(0, min(255, pwm_value)))
@@ -504,10 +501,6 @@ class AquaeroEngine:
                 pass
 
     def trigger_emergency_shutdown(self, reason="Unknown", value=0.0, delay_seconds=0):
-        import os
-        import datetime
-        import subprocess
-        import json
 
         log_dir = os.path.expanduser("~/.config/aquacontrol")
         os.makedirs(log_dir, exist_ok=True)

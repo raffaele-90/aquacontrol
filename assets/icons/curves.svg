@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!-- Sfondo grigio smussato, stesse dimensioni e proporzioni di Dashboard (panoramic.svg) -->
+  <rect x="2" y="2" width="20" height="20" rx="3" fill="#999999" />
+  
+  <!-- Grafico scalato e inserito perfettamente al centro dello sfondo -->
+  <g transform="translate(2, 2) scale(0.2)">
+    
+    <!-- Barre azzurre (Ispessite a 8 per visibilità nel formato piccolo) -->
+    <g stroke="#00e5ff" stroke-width="8" stroke-linecap="butt">
+      <line x1="27" y1="85" x2="27" y2="64" />
+      <line x1="39" y1="85" x2="39" y2="60" />
+      <line x1="51" y1="85" x2="51" y2="54.6" />
+      <line x1="63" y1="85" x2="63" y2="48.1" />
+      <line x1="75" y1="85" x2="75" y2="40" />
+    </g>
+
+    <!-- Curva verde (Ispessita a 8) -->
+    <path d="M 15 65 C 30 65, 55 55, 75 40" fill="none" stroke="#00FF00" stroke-width="8" stroke-linecap="round" />
+
+    <!-- Assi (Spostati in cima, resi BIANCHI e ispessiti a 8 per visibilità) -->
+    <g stroke="#ffffff" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="15" y1="92" x2="15" y2="10" />
+      <polyline points="9.5,16.5 15,10 20.5,16.5" />
+      <line x1="8" y1="85" x2="95" y2="85" />
+      <polyline points="88.5,79.5 95,85 88.5,90.5" />
+    </g>
+
+  </g>
+</svg>

@@ -2,7 +2,7 @@
 # AquaControl
 # Copyright (C) 2026 Raffaele Schiavone
 #
-# This program is free software: you can redistribute it and/or modify...
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -14,7 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# AquaControl - Installatore Universale Linux (v3.3.2)
+# AquaControl - Installatore Universale Linux (v4.0)
 
 if [ "$EUID" -ne 0 ]; then
   echo "ERRORE: Per installare AquaControl nel sistema, esegui lo script come root (es. sudo ./installer.sh)"
@@ -26,9 +26,12 @@ mkdir -p /usr/lib/aquacontrol
 mkdir -p /usr/share/applications
 mkdir -p /usr/share/icons/hicolor/512x512/apps
 
-echo "=> Copia dei file sorgente Python in /usr/lib..."
+echo "=> Copia dei file sorgente Python e assets in /usr/lib..."
 cp *.py /usr/lib/aquacontrol/
 chmod 644 /usr/lib/aquacontrol/*.py
+cp -r assets /usr/lib/aquacontrol/
+find /usr/lib/aquacontrol/assets -type d -exec chmod 755 {} +
+find /usr/lib/aquacontrol/assets -type f -exec chmod 644 {} +
 
 echo "=> Creazione dell'eseguibile globale in /usr/bin..."
 cat << 'EOF' > /usr/bin/aquacontrol
@@ -41,7 +44,7 @@ echo "=> Generazione dinamica del lanciatore .desktop..."
 cat << 'EOF' > /usr/share/applications/aquacontrol.desktop
 [Desktop Entry]
 Name=AquaControl
-Comment=Suite di controllo per Aquaero 6 LT
+Comment=Suite di controllo per Aquaero 6 LT e Farbwerk 360
 Exec=/usr/bin/aquacontrol
 Icon=aquacontrol
 Terminal=false
@@ -54,11 +57,13 @@ echo "=> Installazione dell'icona..."
 cp aquacontrol.png /usr/share/icons/hicolor/512x512/apps/
 chmod 644 /usr/share/icons/hicolor/512x512/apps/aquacontrol.png
 
-echo "=> Configurazione regole Udev per la porta USB..."
+echo "=> Configurazione regole Udev per le porte USB..."
 cat << 'EOF' > /etc/udev/rules.d/99-aquaero.rules
-# AquaControl - Permessi hardware per Aquaero
+# AquaControl - Permessi hardware per Aquaero 6 LT e Farbwerk 360
 SUBSYSTEM=="usb", ATTRS{idVendor}=="0c70", ATTRS{idProduct}=="f001", MODE="0666"
 SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0c70", ATTRS{idProduct}=="f001", MODE="0666"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0c70", ATTRS{idProduct}=="f010", MODE="0666"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0c70", ATTRS{idProduct}=="f010", MODE="0666"
 EOF
 chmod 644 /etc/udev/rules.d/99-aquaero.rules
 
@@ -73,7 +78,7 @@ for hwmon in /sys/class/hwmon/hwmon*; do
 done
 
 if [ "$AQUAERO_FOUND" -eq 0 ]; then
-    echo "   ATTENZIONE: Nessun Aquaero rilevato attualmente nel sistema."
+    echo "   ATTENZIONE: Nessun Aquaero rilevato attualmente nel sistema per hwmon."
 fi
 
 echo "=> Configurazione regole Sudoers per lo spegnimento di emergenza..."

@@ -14,14 +14,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel,
                                QProgressBar, QFrame, QLayout, QSizePolicy)
 from PySide6.QtCore import Qt, Signal, QTimer
+from PySide6.QtGui import QIcon
 
 class AquaeroOSD(QWidget):
     """
-    Floating desktop OSD widget.
-    Implements drag-and-drop repositioning and dynamic telemetry updates.
+    Widget OSD desktop flottante.
+    Implementa il riposizionamento tramite trascinamento e l'aggiornamento dinamico della telemetria.
     """
     position_changed = Signal(int, int)
 
@@ -53,7 +55,7 @@ class AquaeroOSD(QWidget):
         self.layout.addWidget(self.bg_widget)
 
         self.header_layout = QHBoxLayout()
-        self.icon_lbl = QLabel("📊")
+        self.icon_lbl = QLabel() # Inizializzata vuota, il pixmap si calibra nello scaling
         self.title_lbl = QLabel("AQUACONTROL OSD")
         self.title_lbl.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.header_layout.addWidget(self.icon_lbl)
@@ -108,7 +110,6 @@ class AquaeroOSD(QWidget):
 
         self.layout.setContentsMargins(int(10*s), int(10*s), int(10*s), int(10*s))
 
-        # Sfondo Breeze Dark coerente con le card del programma
         self.bg_widget.setStyleSheet(
             f"#osd_bg {{ background-color: rgba(35, 38, 41, {self.bg_opacity}); "
             f"border-radius: {int(8*s)}px; "
@@ -117,7 +118,10 @@ class AquaeroOSD(QWidget):
         self.bg_layout.setContentsMargins(int(15*s), int(12*s), int(15*s), int(12*s))
         self.bg_layout.setSpacing(int(10*s))
 
-        self.icon_lbl.setStyleSheet(f"font-size: {int(16*s)}px; background: transparent; border: none;")
+        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "panoramic.svg")
+        self.icon_lbl.setPixmap(QIcon(icon_path).pixmap(int(16*s), int(16*s)))
+        self.icon_lbl.setStyleSheet("background: transparent; border: none;")
+
         self.title_lbl.setStyleSheet(
             f"color: {self.color_badges}; font-weight: 900; "
             f"font-size: {int(14*s)}px; letter-spacing: {int(1.5*s)}px; "

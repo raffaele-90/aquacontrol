@@ -22,20 +22,23 @@ import socket
 import json
 import time
 import threading
+from PySide6.QtDBus import QDBusConnection, QDBusMessage
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                                QHBoxLayout, QSystemTrayIcon, QMenu, QStyle,
                                QListWidget, QListWidgetItem, QStackedWidget,
                                QLabel, QPushButton, QComboBox, QLineEdit, QScrollArea,
                                QGroupBox, QCheckBox, QMessageBox, QFrame, QDialog)
-from PySide6.QtCore import Qt, QThread, Signal, QTimer
+from PySide6.QtCore import Qt, QThread, Signal, QTimer, QSize, Slot, SLOT
 from PySide6.QtGui import QAction, QIcon, QFont, QColor, QPixmap
 
 # --- Importazioni Modulari ---
 from config_manager import global_config, save_config, CONFIG_FILE
 from i18n import T
 from engine import AquaeroEngine
+from farbwerk360_engine import Farbwerk360Engine
+from farbwerk360_effects import Farbwerk360EffectsEngine
 from osd_widget import AquaeroOSD
-from ui_tabs import DashboardTabWidget, SecurityTabWidget, SettingsTabWidget, GuideTabWidget, OSDConfigTabWidget, HardwareTabWidget
+from ui_tabs import DashboardTabWidget, SecurityTabWidget, SettingsTabWidget, GuideTabWidget, OSDConfigTabWidget, HardwareTabWidget, Farbwerk360TabWidget, get_colored_pixmap
 from ui_widgets import ChannelControlWidget, ProcessMappingDialog, MeltdownDialog
 
 IPC_SOCKET_PATH = "/tmp/aquacontrol_osd.sock"
@@ -61,7 +64,11 @@ def get_dynamic_style(opacity_value):
     }}
 
     QListWidget#Sidebar {{ background: transparent; border: none; outline: 0; }}
-    QListWidget#Sidebar::item {{ padding: 12px 0px; margin: 2px 0px; }}
+    QListWidget#Sidebar::item {{
+        margin: 8px 0px;
+        border-left: 4px solid transparent;
+        padding-left: 15px;
+    }}
 
     QListWidget#Sidebar::item:selected {{
         background-color: rgba(0, 229, 255, 50);
@@ -104,7 +111,7 @@ def get_dynamic_style(opacity_value):
     }}
 
 
-    /* --- FIX: Scrollbar sottili a capsula --- */
+    /* --- Scrollbar sottili a capsula --- */
     QScrollArea {{ border: none; background: transparent; }}
     QScrollArea QWidget {{ background: transparent; }}
 
@@ -195,6 +202,8 @@ class AquaControlUI(QMainWindow):
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setStyleSheet("background: transparent;")
         self.engine = AquaeroEngine()
+        self.fw360_engine = Farbwerk360EffectsEngine()
+        self.fw360_engine.connect()
         self.setWindowTitle(T("app_title"))
         self.resize(1000, 950)
         self.updating_combo = False
@@ -235,6 +244,25 @@ class AquaControlUI(QMainWindow):
         self.dirty_timer = QTimer(self)
         self.dirty_timer.timeout.connect(self.check_dirty_state)
         self.dirty_timer.start(500)
+
+        # --- FARBWERK 360: LOGICA DI AVVIO E SOSPENSIONE ---
+
+        # 1. Applicazione all'avvio (se la spunta è attiva)
+        if global_config.get("fw360_apply_on_start", False):
+            # Usiamo un leggero ritardo per assicurarci che la UI sia pronta e l'hardware inizializzato
+            QTimer.singleShot(1000, self.farbwerk360_tab.apply_silent_startup)
+
+        # 2. Registrazione al bus di sistema per intercettare la sospensione (logind)
+        system_bus = QDBusConnection.systemBus()
+        system_bus.connect(
+            "org.freedesktop.login1",
+            "/org/freedesktop/login1",
+            "org.freedesktop.login1.Manager",
+            "PrepareForSleep",
+            self,
+            SLOT("on_prepare_for_sleep(bool)")
+        )
+
         # Controllo diagnostico della sessione precedente
         QTimer.singleShot(1500, self.check_previous_session_emergency)
 
@@ -258,13 +286,11 @@ class AquaControlUI(QMainWindow):
 
                 header_layout = QHBoxLayout()
 
-                # Sostituzione dell'emoji testuale con icona di sistema nativa e professionale
                 lbl_icon = QLabel()
                 pixmap = self.style().standardIcon(QStyle.SP_MessageBoxWarning).pixmap(48, 48)
                 lbl_icon.setPixmap(pixmap)
                 lbl_icon.setStyleSheet("background: transparent; border: none;")
 
-                # Tutte le stringhe sono ora pilotate dinamicamente da i18n
                 lbl_title = QLabel(
                     f"<h3 style='color: #ff3333; margin: 0;'>{T('loop_emergency')}</h3>"
                     f"<p style='color: #a6adc8; margin: 5px 0 0 0;'>{T('popup_fail_safe_msg')}</p>"
@@ -330,7 +356,9 @@ class AquaControlUI(QMainWindow):
         self.chk_autoswitch.setChecked(global_config.get("autoswitch_enabled", False))
         self.chk_autoswitch.toggled.connect(lambda v: self._save_simple_config("autoswitch_enabled", v))
 
-        self.btn_autoswitch_settings = QPushButton("⚙️")
+        self.btn_autoswitch_settings = QPushButton()
+        icon_settings = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "settings.svg")
+        self.btn_autoswitch_settings.setIcon(QIcon(get_colored_pixmap(icon_settings, 20, "#cdd6f4")))
         self.btn_autoswitch_settings.setFixedWidth(40)
         self.btn_autoswitch_settings.clicked.connect(self.open_autoswitch_settings)
 
@@ -392,29 +420,42 @@ class AquaControlUI(QMainWindow):
         self.sidebar.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.sidebar.setFrameShape(QFrame.NoFrame)
 
-        # Icone originali
-        icons = [("📊", T("tab_dash")),
-                 ("🎛️", T("fan_tab_title")),
-                 ("🔌", T("tab_hw_channels")),
-                 ("\u2622\uFE0E", T("sidebar_sec")),
-                 ("🖥️", T("sidebar_osd")),
-                 ("⚙️", T("tab_settings")),
-                 ("📖", T("tab_guide"))]
+        # Imposta la dimensione fissa per le icone SVG nella sidebar
+        self.sidebar.setIconSize(QSize(35, 35))
 
-        for icon_txt, tooltip in icons:
-            item = QListWidgetItem(icon_txt)
-            item.setFont(QFont("Arial", 22))
-            item.setTextAlignment(Qt.AlignCenter)
+        # Percorso assoluto della directory contenente le icone
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        icons_dir = os.path.join(base_dir, "assets", "icons")
+
+        # Lista di tuple: (nome_file_svg, tooltip_tradotto)
+        icons = [
+            ("panoramic.svg", T("tab_dash")),
+            ("curves.svg", T("fan_tab_title")),
+            ("hardware.svg", T("tab_hw_channels")),
+            ("farbwerk360.svg", T("tab_farbwerk360")),
+            ("security.svg", T("sidebar_sec")),
+            ("osd.svg", T("sidebar_osd")),
+            ("settings.svg", T("tab_settings")),
+            ("manual.svg", T("tab_guide"))
+        ]
+
+        for icon_file, tooltip in icons:
+            item = QListWidgetItem()
+            # Carica l'immagine dal file e la imposta come icona dell'elemento
+            icon_path = os.path.join(icons_dir, icon_file)
+            item.setIcon(QIcon(icon_path))
             item.setToolTip(tooltip)
-            if tooltip == T("sidebar_sec"): item.setForeground(QColor("#ff3333"))
             self.sidebar.addItem(item)
 
         sidebar_layout.addWidget(self.sidebar)
 
-        # 4. TASTO INFO (In fondo alla colonna scura)
-        self.btn_info_sidebar = QPushButton("ℹ️")
+        # 4. TASTO INFO
+        self.btn_info_sidebar = QPushButton()
         self.btn_info_sidebar.setObjectName("InfoButton")
         self.btn_info_sidebar.setCursor(Qt.PointingHandCursor)
+        info_icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "info.svg")
+        self.btn_info_sidebar.setIcon(QIcon(info_icon_path))
+        self.btn_info_sidebar.setIconSize(QSize(35, 35))
         self.btn_info_sidebar.clicked.connect(self.show_about_dialog)
         sidebar_layout.addWidget(self.btn_info_sidebar)
 
@@ -433,6 +474,9 @@ class AquaControlUI(QMainWindow):
 
         self.hw_channels_tab = HardwareTabWidget(self)
         self.stack.addWidget(self.hw_channels_tab)
+
+        self.farbwerk360_tab = Farbwerk360TabWidget(self)
+        self.stack.addWidget(self.farbwerk360_tab)
 
         self.security_tab = SecurityTabWidget()
         self.stack.addWidget(self.security_tab)
@@ -459,24 +503,38 @@ class AquaControlUI(QMainWindow):
         self.setStyleSheet(get_dynamic_style(initial_opacity))
 
     def build_fan_control_ui(self, layout):
+        header_layout = QHBoxLayout()
+        lbl_icon = QLabel()
+        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "curves.svg")
+        lbl_icon.setPixmap(QIcon(icon_path).pixmap(24, 24))
+        header_layout.addWidget(lbl_icon)
+
         lbl_main_title = QLabel(T("fan_tab_title"))
-        lbl_main_title.setStyleSheet("font-size: 24px; color: #00e5ff; font-weight: bold; margin-bottom: 15px;")
-        layout.addWidget(lbl_main_title)
+        lbl_main_title.setStyleSheet("font-size: 24px; color: #00e5ff; font-weight: bold;")
+        header_layout.addWidget(lbl_main_title)
+        header_layout.addStretch()
+
+        layout.addLayout(header_layout)
+        layout.addSpacing(15)
 
         lbl_prof_group = QLabel(T("profile_group"))
         lbl_prof_group.setStyleSheet("font-size: 16px; color: #cdd6f4; font-weight: bold; margin-bottom: 5px;")
         layout.addWidget(lbl_prof_group)
 
         top_bar = QHBoxLayout()
-        profile_group = QGroupBox() # Nessun titolo qui!
+        profile_group = QGroupBox()
         profile_layout = QHBoxLayout()
         self.combo_profiles = QComboBox()
 
-        self.btn_save_current = QPushButton("💾")
+        self.btn_save_current = QPushButton()
+        icon_save = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "save.svg")
+        self.btn_save_current.setIcon(QIcon(get_colored_pixmap(icon_save, 20, "#cdd6f4")))
         self.btn_save_current.setFixedWidth(40)
         self.btn_save_current.clicked.connect(self.save_current_profile)
 
-        self.btn_delete_profile = QPushButton("✖")
+        self.btn_delete_profile = QPushButton()
+        icon_del = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "close.svg")
+        self.btn_delete_profile.setIcon(QIcon(get_colored_pixmap(icon_del, 20, "#cdd6f4")))
         self.btn_delete_profile.setFixedWidth(40)
         self.btn_delete_profile.clicked.connect(self.delete_current_profile)
 
@@ -521,7 +579,7 @@ class AquaControlUI(QMainWindow):
         osd_conf = global_config.get("osd_config", {})
 
         if getattr(self, 'chk_osd', None) and self.chk_osd.isChecked():
-            # Aggiunta Flussi all'OSD (Ciclo corretto, rimosso il duplicato)
+            # Aggiunta Flussi all'OSD
             for f_id in range(1, 3):
                 comp_id = f"flow_{f_id}"
                 conf_f = osd_conf.get(comp_id, {"enabled": False, "custom_name": ""})
@@ -665,7 +723,6 @@ class AquaControlUI(QMainWindow):
             self.tray_icon.showMessage(T("loop_emergency"), " | ".join(alarm_messages), QSystemTrayIcon.Critical, 5000)
 
             if not hasattr(self, 'meltdown_dialog') or not self.meltdown_dialog.isVisible():
-                from ui_widgets import MeltdownDialog
                 self.meltdown_dialog = MeltdownDialog(alarm_messages, actions_sec, None)
                 self.meltdown_dialog.show()
 
@@ -828,14 +885,33 @@ class AquaControlUI(QMainWindow):
         line.setStyleSheet("border: 1px solid #45475a;")
         layout.addWidget(line)
 
+        # Creiamo un layout orizzontale per affiancare l'icona al testo
+        warning_layout = QHBoxLayout()
+
+        # 1. L'icona vettoriale ricolorata
+        lbl_warn_icon = QLabel()
+        icon_warn = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "warning.svg")
+        lbl_warn_icon.setPixmap(get_colored_pixmap(icon_warn, 24, "#ffc107"))
+        lbl_warn_icon.setAlignment(Qt.AlignTop)
+
+        # 2. Il testo
         lbl_warning = QLabel()
         lbl_warning.setTextFormat(Qt.RichText)
         lbl_warning.setWordWrap(True)
         lbl_warning.setText(T("info_dialog_warning"))
-        layout.addWidget(lbl_warning)
+
+        warning_layout.addWidget(lbl_warn_icon)
+        warning_layout.addSpacing(5)
+        warning_layout.addWidget(lbl_warning)
+        warning_layout.addStretch()
+
+        # Aggiungiamo il layout orizzontale a quello principale
+        layout.addLayout(warning_layout)
 
         btn_layout = QHBoxLayout()
-        btn_ok = QPushButton("✔ OK")
+        btn_ok = QPushButton(" OK")
+        icon_check = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "check.svg")
+        btn_ok.setIcon(QIcon(get_colored_pixmap(icon_check, 16, "#11111b")))
         btn_ok.setFixedWidth(100)
         btn_ok.setStyleSheet("background-color: #00e5ff; color: #11111b; font-weight: bold; border-radius: 4px; padding: 6px;")
         btn_ok.clicked.connect(dialog.accept)
@@ -862,7 +938,7 @@ class AquaControlUI(QMainWindow):
         os.execl(sys.executable, sys.executable, *sys.argv)
 
     def force_quit(self):
-        self.is_quitting = True  # <-- Nuova flag inserita qui
+        self.is_quitting = True
         self.ipc_server.stop()
         self.hw_thread.stop()
         QApplication.quit()
@@ -969,6 +1045,17 @@ class AquaControlUI(QMainWindow):
         if reason == QSystemTrayIcon.Trigger:
             if self.isHidden(): self.showNormal()
             else: self.hide()
+
+    @Slot(bool)
+    def on_prepare_for_sleep(self, sleeping: bool):
+        """
+        Intercetta il segnale DBus PrepareForSleep.
+        sleeping = True (sospensione in corso)
+        sleeping = False (risveglio dalla sospensione)
+        """
+        if not sleeping:
+            if global_config.get("fw360_apply_on_resume", False):
+                QTimer.singleShot(3000, self.farbwerk360_tab.apply_silent_startup)
 
     def closeEvent(self, event):
         if getattr(self, 'is_quitting', False):

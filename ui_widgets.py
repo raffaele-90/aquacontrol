@@ -23,7 +23,7 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlide
                                QInputDialog, QFrame, QDialog, QListWidget, QSpinBox,
                                QMessageBox, QApplication, QButtonGroup)
 from PySide6.QtCore import Qt, Signal, QPointF, QRectF, QTimer
-from PySide6.QtGui import QPainter, QColor, QPen, QPolygonF, QBrush, QFont
+from PySide6.QtGui import QPainter, QColor, QPen, QPolygonF, QBrush, QFont, QIcon
 
 from config_manager import global_config, save_config
 from i18n import T
@@ -33,6 +33,15 @@ def format_temp(celsius_val):
     if global_config.get("use_fahrenheit", False):
         return f"{(celsius_val * 1.8) + 32:.1f} °F"
     return f"{celsius_val:.1f} °C"
+
+def get_colored_pixmap(icon_path, size, color_hex):
+    """Carica un SVG vettoriale e lo colora dinamicamente."""
+    pixmap = QIcon(icon_path).pixmap(size, size)
+    painter = QPainter(pixmap)
+    painter.setCompositionMode(QPainter.CompositionMode_SourceIn)
+    painter.fillRect(pixmap.rect(), QColor(color_hex))
+    painter.end()
+    return pixmap
 
 class CurveVisualizer(QWidget):
     """Componente grafico per la renderizzazione della curva termica automatica polinomiale."""
@@ -458,7 +467,8 @@ class ChannelControlWidget(QGroupBox):
 
         sensor_box = QHBoxLayout()
         self.combo_sensors = QComboBox()
-        self.btn_rename_sensor = QPushButton("✎")
+        self.btn_rename_sensor = QPushButton()
+        self.btn_rename_sensor.setIcon(QIcon(os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "settings.svg")))
         self.btn_rename_sensor.setFixedWidth(35)
         self.btn_rename_sensor.clicked.connect(self.rename_current_sensor)
         sensor_box.addWidget(self.combo_sensors)
@@ -468,7 +478,7 @@ class ChannelControlWidget(QGroupBox):
         self.chk_delta.setStyleSheet("font-size: 13px; font-weight: normal;")
 
         self.lbl_delta_help = QLabel(f" {T('delta_hint')} ")
-        self.lbl_delta_help.setStyleSheet("color: #6c7086; font-size: 12px; font-style: italic;")
+        self.lbl_delta_help.setStyleSheet("color: #6c7086; font-size: 13px; font-style: italic;")
         self.lbl_delta_help.setEnabled(False)
 
         self.combo_delta_cold = QComboBox()
@@ -760,14 +770,17 @@ class ChannelControlWidget(QGroupBox):
         self.update_auto_toggle_text()
 
     def update_auto_toggle_text(self):
+        icon_name = "chevron_down.svg" if self.container_auto_controls.isVisible() else "chevron_right.svg"
+        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", icon_name)
+        self.btn_toggle_auto.setIcon(QIcon(get_colored_pixmap(icon_path, 16, "#00e5ff")))
         if self.container_auto_controls.isVisible():
-            self.btn_toggle_auto.setText(T("hide_curve_params"))
+            self.btn_toggle_auto.setText(f" {T('hide_curve_params')}")
         else:
             t_m = self.slider_t_min.value()
             t_M = self.slider_t_max.value()
             p_m = self.slider_p_min.value()
             p_M = self.slider_p_max.value()
-            self.btn_toggle_auto.setText(T("show_curve_params").format(tm=t_m, tM=t_M, pm=p_m, pM=p_M))
+            self.btn_toggle_auto.setText(f" {T('show_curve_params').format(tm=t_m, tM=t_M, pm=p_m, pM=p_M)}")
 
     def toggle_manual_controls(self):
         is_visible = self.container_manual_controls.isVisible()
@@ -775,12 +788,15 @@ class ChannelControlWidget(QGroupBox):
         self.update_manual_toggle_text()
 
     def update_manual_toggle_text(self):
+        icon_name = "chevron_down.svg" if self.container_manual_controls.isVisible() else "chevron_right.svg"
+        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", icon_name)
+        self.btn_toggle_manual.setIcon(QIcon(get_colored_pixmap(icon_path, 16, "#00e5ff")))
         if self.container_manual_controls.isVisible():
-            self.btn_toggle_manual.setText(T("hide_graph_ctrls"))
+            self.btn_toggle_manual.setText(f" {T('hide_graph_ctrls')}")
         else:
             min_x = self.spin_scale_min.value()
             max_x = self.spin_scale_max.value()
-            self.btn_toggle_manual.setText(T("show_graph_ctrls").format(min=min_x, max=max_x))
+            self.btn_toggle_manual.setText(f" {T('show_graph_ctrls').format(min=min_x, max=max_x)}")
 
     def on_manual_scale_changed(self):
         min_v = self.spin_scale_min.value()
@@ -1083,7 +1099,10 @@ class ProcessMappingDialog(QDialog):
         self.btn_add.clicked.connect(self.add_mapping)
 
         add_layout.addWidget(self.txt_process, stretch=2)
-        add_layout.addWidget(QLabel(" ➡️ "))
+        lbl_arrow = QLabel()
+        icon_arrow = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icons", "arrow_right.svg")
+        lbl_arrow.setPixmap(get_colored_pixmap(icon_arrow, 16, "#a6adc8"))
+        add_layout.addWidget(lbl_arrow)
         add_layout.addWidget(self.combo_profiles, stretch=1)
         add_layout.addWidget(self.btn_add)
         layout.addLayout(add_layout)
@@ -1097,7 +1116,7 @@ class ProcessMappingDialog(QDialog):
         self.list_widget.clear()
         process_map = global_config.get("process_profiles", {})
         for proc, prof in process_map.items():
-            self.list_widget.addItem(f"{proc} ➡️ {prof}")
+            self.list_widget.addItem(f"{proc} -> {prof}")
 
     def add_mapping(self):
         proc = self.txt_process.text().strip()
@@ -1114,7 +1133,7 @@ class ProcessMappingDialog(QDialog):
         selected = self.list_widget.currentItem()
         if selected:
             text = selected.text()
-            proc = text.split(" ➡️ ")[0]
+            proc = proc = text.split(" -> ")[0]
             if proc in global_config.get("process_profiles", {}):
                 del global_config["process_profiles"][proc]
                 save_config(global_config)
@@ -1261,7 +1280,7 @@ class SparklineWidget(QWidget):
 
 
 class PWMFillBar(QWidget):
-    """Barra di riempimento ultra-sottile per indicare il carico percentuale (0-100%)."""
+    """Barra di riempimento per indicare il carico percentuale (0-100%)."""
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFixedHeight(4) # Ultra-sottile e non invasiva

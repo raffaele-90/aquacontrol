@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <g transform="translate(-1.2, -1.2) scale(1.1)">
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="3" width="20" height="14" rx="2" stroke="#999999" stroke-width="1.5" />
+      <path d="M8 21h8M12 17v4" stroke="#999999" stroke-width="1.5" />
+      <text x="12" y="11.5" font-family="system-ui, sans-serif" font-size="5.5" font-weight="bold" fill="#00e5ff" stroke="none" text-anchor="middle" dominant-baseline="middle" letter-spacing="0.5">
+        OSD
+      </text>
+    </g>
+  </g>
+</svg>
