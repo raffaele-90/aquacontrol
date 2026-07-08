@@ -98,16 +98,23 @@ The manufacturer uses closed protocols. Official updates can unpredictably alter
    sudo pacman -S python-pynvml
    ```
 
-### Debian / Ubuntu (Coming soon)
+### Debian / Ubuntu / Linux Mint
 
 1. Download the latest version of the `.deb` package from the [Releases](https://github.com/raffaele-90/aquacontrol/releases) page of the repository.
-2. Open the terminal in the folder where you downloaded the file and run:
+
+2. Open the terminal in the folder where you downloaded the file and run the command:
 
    ```bash
    sudo apt install ./aquacontrol_*.deb
    ```
-   
-   *(Note: the exact instructions for udev permissions and any dependencies will be updated upon the official release of the Debian package).*
+
+   The package manager will install the application, automatically resolving all necessary dependencies.
+
+3. If you use an NVIDIA graphics card and want to view its load and temperature data, install the additional package by running: 
+
+   ```bash
+   sudo apt install python3-pynvml
+   ```
 
 ## 📜 License
 Released under the free international GNU GPLv3 license. This is an independent project developed by a Linux community user and is in no way affiliated with, supported by, or endorsed by Aquacomputer.
