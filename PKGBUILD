@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 pkgname=aquacontrol
-pkgver=4.0
+pkgver=4.0.0
 pkgrel=1
 pkgdesc="Suite di controllo per Aquaero 6 LT e Farbwerk 360"
 arch=('any')
